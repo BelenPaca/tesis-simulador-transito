@@ -1,0 +1,23 @@
+name: rag
+services:
+  db:
+    image: qdrant/qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+        - C:/Users/belen/Documents/Taller 3/qdrant_storage:/qdrant/storage
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: uce_chat
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgress_data:/var/lib/postgresql/data
+
+volumes:
+  postgress_data:
