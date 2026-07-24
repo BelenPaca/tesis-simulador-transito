@@ -22,8 +22,8 @@ spring:
 
   docker:
     compose:
-      enabled: true
-      file: spring-rag/docker-compose.yml
+      enabled: false
+      file: spring-rag/podman-compose.yml
   ai:
     model:
       embedding: transformers

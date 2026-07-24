@@ -107,10 +107,10 @@
           
           <div class="suggestions-container">
             <button class="sug-btn sug-blue" @click="sendSuggestion(suggestedQuestions[0])">
-              <span class="sug-icon">⏱️</span><span class="sug-text">{{ suggestedQuestions[0] }}</span><span class="sug-arrow">></span>
+              <span class="sug-icon">🪪</span><span class="sug-text">{{ suggestedQuestions[0] }}</span><span class="sug-arrow">></span>
             </button>
             <button class="sug-btn sug-green" @click="sendSuggestion(suggestedQuestions[1])">
-              <span class="sug-icon">🪪</span><span class="sug-text">{{ suggestedQuestions[1] }}</span><span class="sug-arrow">></span>
+              <span class="sug-icon">⏱️</span><span class="sug-text">{{ suggestedQuestions[1] }}</span><span class="sug-arrow">></span>
             </button>
             <button class="sug-btn sug-purple" @click="sendSuggestion(suggestedQuestions[2])">
               <span class="sug-icon">⚠️</span><span class="sug-text">{{ suggestedQuestions[2] }}</span><span class="sug-arrow">></span>
@@ -131,7 +131,7 @@
             
             <!-- INFRACTION ANALYZER -->
             <transition name="fade">
-              <div v-if="msg.role === 'assistant' && detectInfraction(msg.content)" class="infraction-card">
+              <div v-if="msg.role === 'assistant' && getInfractionData(msg.content)" class="infraction-card">
                 
                 <div class="infraction-header">
                   ⚖️ ANALIZADOR DE INFRACCIONES
@@ -146,13 +146,13 @@
                         <div class="gauge-arc arc-orange"></div>
                         <div class="gauge-arc arc-red"></div>
                       </div>
-                      <div class="gauge-needle" :style="{ transform: getNeedleAngle(msg.content) }">
+                      <div class="gauge-needle" :style="{ transform: getNeedleAngle(getInfractionData(msg.content).gravedad) }">
                         <div class="needle-base"></div>
                       </div>
                     </div>
 
-                    <div class="gauge-value" :class="getGravityClass(msg.content)">
-                      {{ extractGravity(msg.content) }}
+                    <div class="gauge-value" :class="getGravityClass(getInfractionData(msg.content).gravedad)">
+                      {{ getInfractionData(msg.content).gravedad }}
                     </div>
                     <div class="gauge-subtitle">Nivel de gravedad</div>
                   </div>
@@ -161,31 +161,31 @@
                 <div class="infraction-grid-2">
                   <div class="ig-item">
                     <span class="ig-label">Contexto detectado</span>
-                    <span class="ig-value normal" style="font-size: 14px;">{{ extractType(msg.content) }}</span>
+                    <span class="ig-value normal" style="font-size: 14px;">{{ getInfractionData(msg.content).contexto }}</span>
                   </div>
                   <div class="ig-item">
                     <span class="ig-label">Base Legal Principal</span>
-                    <span class="ig-value blue" style="font-size: 14px;">{{ extractLegalBase(msg.content) }}</span>
+                    <span class="ig-value blue" style="font-size: 14px;">{{ getInfractionData(msg.content).baseLegal }}</span>
                   </div>
                 </div>
                 
                 <div class="infraction-details">
-                  <div class="detail-box box-info">
+                  <div class="detail-box box-info" v-if="getInfractionData(msg.content).puntosClave && getInfractionData(msg.content).puntosClave.length > 0">
                     <h4>ℹ️ Puntos Claves</h4>
                     <ul>
-                      <li v-for="(pt, i) in extractKeyPoints(msg.content)" :key="i">{{ pt }}</li>
+                      <li v-for="(pt, i) in getInfractionData(msg.content).puntosClave" :key="i">{{ pt }}</li>
                     </ul>
                   </div>
-                  <div class="detail-box box-cons">
+                  <div class="detail-box box-cons" v-if="getInfractionData(msg.content).consecuencias && getInfractionData(msg.content).consecuencias.length > 0">
                     <h4>⚠️ Consecuencias Posibles</h4>
                     <ul>
-                      <li v-for="(pt, i) in extractConsequences(msg.content)" :key="i">{{ pt }}</li>
+                      <li v-for="(pt, i) in getInfractionData(msg.content).consecuencias" :key="i">{{ pt }}</li>
                     </ul>
                   </div>
-                  <div class="detail-box box-reco">
+                  <div class="detail-box box-reco" v-if="getInfractionData(msg.content).recomendaciones && getInfractionData(msg.content).recomendaciones.length > 0">
                     <h4>🛡️ Recomendaciones</h4>
                     <ul>
-                      <li v-for="(pt, i) in extractRecommendations(msg.content)" :key="i">{{ pt }}</li>
+                      <li v-for="(pt, i) in getInfractionData(msg.content).recomendaciones" :key="i">{{ pt }}</li>
                     </ul>
                   </div>
                 </div>
@@ -309,9 +309,9 @@ export default {
     const convToDelete = ref(null);
 
     const suggestedQuestions = [
+      "¿Qué es una infracción de tránsito?",
       "¿Cuáles son los limites de velocidad permitidos?",
-      "¿Cómo consultar mis puntos en la licencia?",
-      "¿Qué hacer en caso de un accdente?"
+      "¿Qué hacer en caso de un accidente?"
     ];
 
     const currentMessages = computed(() => {
@@ -430,72 +430,34 @@ export default {
     }
 
     // ─── ANALYZER LOGIC ──────────────────────────────────────────────────────
-    function detectInfraction(content) {
-      if (!content) return false;
-      return content.includes('[GRAVEDAD:');
+    function getInfractionData(content) {
+      if (!content) return null;
+      const match = content.match(/\[INFRACTION_DATA\]([\s\S]*?)\[\/INFRACTION_DATA\]/i);
+      if (match && match[1]) {
+        try {
+          return JSON.parse(match[1].trim());
+        } catch (e) {
+          console.error("Error parsing infraction data:", e);
+          return null;
+        }
+      }
+      return null;
     }
 
-    function extractGravity(content) {
-      if (content.includes('[GRAVEDAD: MUY GRAVE]')) return 'MUY GRAVE';
-      if (content.includes('[GRAVEDAD: LEVE]')) return 'LEVE';
-      if (content.includes('[GRAVEDAD: GRAVE]')) return 'GRAVE';
-      return 'GRAVE'; // Default
-    }
-
-    function getGravityClass(content) {
-      const g = extractGravity(content);
+    function getGravityClass(gravity) {
+      if (!gravity) return 'color-green';
+      const g = gravity.toUpperCase();
       if (g === 'MUY GRAVE') return 'color-red';
       if (g === 'GRAVE') return 'color-orange';
       return 'color-green';
     }
 
-    function getNeedleAngle(content) {
-      const g = extractGravity(content);
+    function getNeedleAngle(gravity) {
+      if (!gravity) return 'rotate(-60deg)';
+      const g = gravity.toUpperCase();
       if (g === 'LEVE') return 'rotate(-60deg)';
       if (g === 'GRAVE') return 'rotate(0deg)';
       return 'rotate(60deg)'; // MUY GRAVE
-    }
-
-    function extractLegalBase(content) {
-      const match = content.match(/(Art\.|Artículo)\s*(\d+[A-Z]?)/i);
-      return match ? match[0] : "Revisar normativa legal";
-    }
-
-    function extractType(content) {
-      const lower = content.toLowerCase();
-      if (lower.includes('velocidad')) return "Límites de velocidad";
-      if (lower.includes('accidente')) return "Siniestro de tránsito";
-      if (lower.includes('puntos') || lower.includes('licencia')) return "Infracción de licencia";
-      if (lower.includes('matrícula')) return "Documentación vehicular";
-      return "Contravención general";
-    }
-
-    // Extracción dinámica de puntos y viñetas
-    function extractKeyPoints(content) {
-      const lines = content.replace(/\[GRAVEDAD:[^\]]+\]/gi, '').split('\n');
-      const bullets = lines.filter(l => l.trim().match(/^(\d+\.|-|\*)/))
-                           .map(l => l.replace(/^(\d+\.|-|\*)\s*/, '').replace(/\*\*/g, '').trim())
-                           .filter(l => l.length > 10);
-      return bullets.length > 0 ? bullets.slice(0, 2) : ["Se detectó un reporte legal.", "Aplica lo estipulado en el marco normativo de tránsito."];
-    }
-
-    function extractConsequences(content) {
-       const lower = content.toLowerCase();
-       let cons = [];
-       if (lower.includes('puntos')) cons.push("Reducción de puntos en la licencia.");
-       if (lower.includes('salario') || lower.includes('sbu') || lower.includes('multa') || lower.includes('$')) cons.push("Sanción económica (Multa pecuniaria).");
-       if (lower.includes('prisión') || lower.includes('privativa')) cons.push("Pena privativa de libertad.");
-       if (lower.includes('vehículo') || lower.includes('retención')) cons.push("Retención del vehículo implicado.");
-       if (cons.length === 0) cons.push("Posibles sanciones administrativas.");
-       return cons;
-    }
-
-    function extractRecommendations(content) {
-       return [
-         "Mantén la calma y colabora en todo momento con las autoridades.",
-         "En caso de accidente, contacta inmediatamente al 911 si hay heridos.",
-         "Asesórate con un profesional del derecho en materia de tránsito."
-       ];
     }
 
     // ─── CHAT LOGIC ──────────────────────────────────────────────────────────
@@ -599,8 +561,8 @@ export default {
 
     function formatMessage(content) {
       if (!content) return '';
-      // Ocultar la etiqueta del sistema
-      let text = content.replace(/\[GRAVEDAD:\s*(LEVE|GRAVE|MUY GRAVE)\]/gi, '').trim();
+      // Ocultar el bloque JSON del sistema
+      let text = content.replace(/\[INFRACTION_DATA\][\s\S]*?\[\/INFRACTION_DATA\]/gi, '').trim();
       
       let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
@@ -613,8 +575,7 @@ export default {
       chatArea, showConfig, selectedModel, weatherData, trafficAlerts, suggestedQuestions, isDarkMode,
       showDeleteModal, convToDelete,
       newConversation, selectConversation, deleteConversation, confirmDelete, saveModel, sendMessage, sendSuggestion, 
-      detectInfraction, extractType, extractLegalBase, extractGravity, getGravityClass, getNeedleAngle, 
-      extractKeyPoints, extractConsequences, extractRecommendations, formatMessage, toggleTheme
+      getInfractionData, getGravityClass, getNeedleAngle, formatMessage, toggleTheme
     };
   }
 };

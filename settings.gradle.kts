@@ -1,2 +1,2 @@
-rootProject.name = "Taller"
-include("11.spring-rag")
+rootProject.name = "Tesis"
+include("spring-rag")

@@ -41,3 +41,14 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### Local Databases & Vectors ###
+**/qdrant_storage/
+qdrant_storage/
+
+### Heavy AI Models (>100MB) ###
+*.onnx
+*.bin
+*.safetensors
+spring-rag/src/main/resources/models/*.onnx
+
