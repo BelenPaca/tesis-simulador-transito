@@ -1,4 +1,4 @@
-# Trabajo Grupal: Sistema RAG para Consultas de Normativa UCE
+ Sistema RAG para Consultas de Normativa UCE
 
 Este proyecto es un asistente virtual diseñado para la Carrera de Computación (FICA - UCE), con el objetivo de resolver dudas sobre la normativa de titulación y los proyectos integradores de los estudiantes.
 
@@ -48,5 +48,3 @@ El sistema emplea la técnica **RAG (Retrieval-Augmented Generation)** para enri
    ```
    (Los archivos compilados en `dist/` se deben copiar a `11.spring-rag/src/main/resources/static/`).
 
-## 👥 Equipo de Desarrollo
-Proyecto grupal desarrollado para la materia correspondiente en la Carrera de Computación (FICA - UCE).
