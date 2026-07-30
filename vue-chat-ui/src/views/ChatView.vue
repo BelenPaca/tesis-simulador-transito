@@ -805,7 +805,7 @@ export default {
         isStreaming.value = false;
         await loadConversations(); // Reload history after replying
         await nextTick();
-        scrollToBottom();
+        scrollToResponseStart();
       }
     }
 
@@ -816,6 +816,33 @@ export default {
 
     function scrollToBottom() {
       if (chatArea.value) chatArea.value.scrollTop = chatArea.value.scrollHeight;
+    }
+
+    function scrollToResponseStart() {
+      if (!chatArea.value) return;
+
+      const setPos = () => {
+        if (!chatArea.value) return;
+        const wrappers = chatArea.value.querySelectorAll('.message-wrapper');
+        if (!wrappers || wrappers.length === 0) return;
+
+        // El último wrapper es la respuesta del asistente (con su Dashboard si aplica)
+        const lastWrapper = wrappers[wrappers.length - 1];
+
+        if (lastWrapper) {
+          const targetRect = lastWrapper.getBoundingClientRect();
+          const chatAreaRect = chatArea.value.getBoundingClientRect();
+          const relativeTop = targetRect.top - chatAreaRect.top + chatArea.value.scrollTop;
+          chatArea.value.scrollTop = Math.max(0, relativeTop - 12);
+        }
+      };
+
+      setPos();
+      requestAnimationFrame(setPos);
+      setTimeout(setPos, 50);
+      setTimeout(setPos, 150);
+      setTimeout(setPos, 300);
+      setTimeout(setPos, 600);
     }
 
     function formatMessage(content) {
@@ -836,7 +863,8 @@ export default {
       weatherCondition, fetchWeather, routeEstimates, isLoadingRoutes, fetchRoutesInfo,
       tomtomMapRef, isMapLoaded, initTomTomMap, inputTextarea, isResettingChat,
       newConversation, selectConversation, deleteConversation, confirmDelete, sendMessage, sendSuggestion, 
-      getInfractionData, getGravityClass, getNeedleAngle, formatMessage, toggleTheme, carrosLogo
+      getInfractionData, getGravityClass, getNeedleAngle, formatMessage, toggleTheme, carrosLogo,
+      scrollToResponseStart
     };
   }
 };
