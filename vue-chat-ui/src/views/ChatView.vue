@@ -3,7 +3,7 @@
     
     <!-- Custom Delete Modal -->
     <transition name="fade">
-      <div v-if="showDeleteModal" class="modal-overlay">
+      <div v-if="showDeleteModal" class="modal-overlay" @click.self="showDeleteModal = false">
         <div class="modal-box">
           <div class="modal-icon">⚠️</div>
           <h3>¿Eliminar conversación?</h3>
@@ -16,11 +16,45 @@
       </div>
     </transition>
 
+    <!-- Model Info Modal (Centro de pantalla) -->
+    <transition name="fade">
+      <div v-if="showConfig" class="modal-overlay" @click.self="showConfig = false">
+        <div class="modal-box model-modal-box">
+          <div class="modal-icon">ℹ️</div>
+          <h3>Información del Modelo</h3>
+          
+          <div class="model-badge-container">
+            <span class="model-badge-name">gemini-3.1-flash-lite</span>
+            <span class="model-badge-status">● Activo</span>
+          </div>
+
+          <p class="model-modal-desc">
+            Modelo optimizado para procesamiento de documentos jurídicos y consulta RAG.
+          </p>
+
+          <div class="legal-framework-box">
+            <div class="legal-framework-title">⚖️ Marco Legal Aplicado:</div>
+            <ul class="legal-framework-list">
+              <li>📜 Código Orgánico Integral Penal (COIP)</li>
+              <li>🚗 Ley de Tránsito y su Reglamento</li>
+              <li>💼 Código del Trabajo</li>
+              <li>⚖️ COGEP</li>
+              <li>🇪🇨 Constitución de la República del Ecuador</li>
+            </ul>
+          </div>
+
+          <div class="modal-actions" style="margin-top: 20px;">
+            <button class="btn-cancel" style="background: var(--accent-green); color: white; width: 100%;" @click="showConfig = false">Entendido</button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
     <!-- ══════════ LEFT COLUMN (Sidebar) ══════════ -->
     <aside class="sidebar">
       <div class="brand-header" @click="$router.push('/')" style="cursor: pointer;" title="Volver al Inicio">
         <div class="brand-icon">
-          <img src="/carros.png" alt="Logo" style="width: 28px; height: auto;" />
+          <img :src="carrosLogo" alt="Logo" style="width: 28px; height: auto;" />
         </div>
         <div class="brand-text">
           <span class="brand-subtitle">ASISTENTE</span>
@@ -53,21 +87,9 @@
           </div>
         </div>
 
-        <div class="nav-item" style="cursor: pointer;" @click="showConfig = !showConfig">
-          ⚙️ Configuración (Modelo)
+        <div class="nav-item model-info-nav" style="cursor: pointer;" @click="showConfig = true">
+          ℹ️ Información del Modelo
         </div>
-        
-        <transition name="fade">
-          <div v-if="showConfig" class="config-dropdown">
-            <label>Modelo LLM:</label>
-            <select v-model="selectedModel" @change="saveModel">
-              <option value="gemma-4-31b-it">gemma-4-31b-it</option>
-              <option value="openai/gpt-oss-120b">openai/gpt-oss-120b</option>
-              <option value="llama3-70b-8192">llama3-70b-8192</option>
-            </select>
-            <p>Se aplica automáticamente al backend</p>
-          </div>
-        </transition>
       </div>
       
       <!-- Bottom left: Theme toggle and footer -->
@@ -96,7 +118,7 @@
       <div class="chat-area" ref="chatArea">
         
         <!-- Welcome Screen -->
-        <div v-if="currentMessages.length === 0 && !isStreaming" class="welcome-container">
+        <div v-if="currentMessages.length === 0 && !isStreaming" class="welcome-container" :class="{ 'chat-reset-flash': isResettingChat }">
           <div class="welcome-banner">
             <div class="welcome-text">
               <h2>Hola, estoy aquí para <span>ayudarte</span></h2>
@@ -208,6 +230,7 @@
       <div class="input-area">
         <div class="input-container">
           <textarea
+              ref="inputTextarea"
               v-model="inputMessage"
               placeholder="Escribe tu pregunta sobre tránsito..."
               @keydown.enter.exact.prevent="sendMessage"
@@ -219,64 +242,102 @@
           </button>
         </div>
         <div class="disclaimer">
-          Puedes preguntar sobre tráfico, rutas, obras, cierres y más ⓘ
+          Información generada por IA. Valida los resultados con un especialista en tránsito.
         </div>
       </div>
     </main>
 
     <!-- ══════════ RIGHT PANEL (TOOLS) ══════════ -->
     <aside class="right-panel">
-      <!-- Weather Widget -->
+      <!-- Weather Widget (Detección dinámica en todo Ecuador) -->
       <div class="widget-card weather">
-        <div class="widget-title">
-          Clima local
-          <span style="color: #0db37b;">●</span>
+        <div class="widget-title-row">
+          <div class="widget-title-text">
+            <span>Clima</span>
+            <span style="color: #6ee7b7; font-size: 30px;">●</span>
+          </div>
+          <button class="refresh-loc-btn" @click="fetchWeather" title="Redetectar ubicación en Ecuador">
+            <span :class="{ 'spin-icon': isLocatingWeather }">🔄</span>
+          </button>
         </div>
-        <div class="weather-info" v-if="weatherData">
-          <div class="weather-temp">{{ weatherData.temperature }}°C</div>
-          <div class="weather-desc">
-            Viento: {{ weatherData.windspeed }} km/h<br>
-            Condiciones moderadas
+
+
+
+        <div class="weather-info-box" v-if="weatherData && !isLocatingWeather">
+          <div class="weather-top-row">
+            <span class="weather-big-emoji">{{ weatherCondition.emoji }}</span>
+            <div class="weather-temp-col">
+              <span class="weather-temp-num">{{ Math.round(weatherData.temperature) }}°C</span>
+              <span class="weather-cond-label">{{ weatherCondition.label }}</span>
+            </div>
+          </div>
+          <div class="weather-details-row">
+            <div class="weather-detail-item">
+              📍 <strong>{{ weatherLocationName }}</strong>
+            </div>
+            <div class="weather-detail-item">
+              💨 Viento: <span>{{ weatherData.windspeed }} km/h</span>
+            </div>
           </div>
         </div>
-        <div v-else class="weather-desc">Cargando clima...</div>
+
+        <div v-else-if="isLocatingWeather" class="weather-loading">
+          ⏳ Detectando ubicación y consultando clima...
+        </div>
+
+        <div v-else class="weather-loading">
+          ⚠️ No se pudo cargar el clima.
+          <button @click="fetchWeather" class="retry-weather-btn">Reintentar</button>
+        </div>
       </div>
 
-      <!-- Rutas en Google Maps -->
+      <!-- Rutas y Navegación (Tiempos de Viaje TomTom en Vivo) -->
       <div class="widget-card">
         <div class="widget-title">
-          Rutas y Navegación
-          <span class="see-all">📍 Maps</span>
+          Tiempos de Viaje
+          <span class="see-all">En vivo (TomTom)</span>
         </div>
-        <div class="widget-list">
-          <a href="https://www.google.com/maps/dir/?api=1&destination=Mi+Trabajo" target="_blank" class="widget-list-item" style="text-decoration: none;">
-            <span>🏠 Casa - Trabajo</span><span class="arrow">🧭</span>
+        <div class="widget-list" v-if="!isLoadingRoutes && routeEstimates.length > 0">
+          <a v-for="(route, idx) in routeEstimates" :key="idx"
+             :href="route.mapsUrl" target="_blank"
+             class="widget-list-item"
+             :class="{ 'border-none': idx === routeEstimates.length - 1 }"
+             style="text-decoration: none; padding: 10px 0;">
+            <div style="display: flex; flex-direction: column;">
+              <span style="font-weight: 600; font-size: 13px;">{{ route.title }}</span>
+              <span :style="{ color: route.trafficStatus.color, fontSize: '11px', marginTop: '2px', fontWeight: '500' }">
+                {{ route.trafficStatus.text }}
+              </span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span style="font-weight: 800; font-size: 14px; color: var(--text-primary);">{{ route.timeText }}</span>
+              <span class="arrow" style="font-size: 12px;">🧭</span>
+            </div>
           </a>
-          <a href="https://www.google.com/maps/dir/?api=1&destination=Aeropuerto" target="_blank" class="widget-list-item" style="text-decoration: none;">
-            <span>✈️ Centro - Aeropuerto</span><span class="arrow">🧭</span>
-          </a>
+        </div>
+        <div class="widget-list" v-else-if="isLoadingRoutes">
+          <div class="widget-list-item border-none" style="font-size: 11px; color: #64748b; padding-bottom: 0;">
+            ⏳ Calculando tiempos de viaje...
+          </div>
+        </div>
+        <div class="widget-list" v-else>
           <a href="https://www.google.com/maps" target="_blank" class="widget-list-item border-none" style="text-decoration: none;">
             <span>🗺️ Abrir Google Maps</span><span class="arrow">🧭</span>
           </a>
         </div>
       </div>
 
-      <!-- Últimas Alertas -->
+      <!-- Mapa de Tráfico en Vivo (TomTom Option 2) -->
       <div class="widget-card">
         <div class="widget-title">
-          Últimas alertas
+          <span>Mapa de Tráfico</span>
           <span class="see-all">En vivo (TomTom)</span>
         </div>
-        <div class="widget-list" v-if="trafficAlerts.length > 0">
-          <div v-for="(alert, idx) in trafficAlerts" :key="idx" 
-               class="widget-list-item" 
-               :class="{ 'border-none': idx === trafficAlerts.length - 1 }">
-            <span>{{ alert.text }}</span>
-          </div>
-        </div>
-        <div class="widget-list" v-else>
-          <div class="widget-list-item border-none" style="font-size: 11px; color: #64748b; padding-bottom: 0;">
-            Cargando alertas...
+        <div class="tomtom-map-wrapper">
+          <div id="tomtom-map" ref="tomtomMapRef" style="width: 100%; height: 210px; border-radius: 12px; overflow: hidden; background: #0f172a; position: relative;">
+            <div v-if="!isMapLoaded" style="display: flex; align-items: center; justify-content: center; height: 100%; color: #94a3b8; font-size: 12px;">
+              ⏳ Cargando mapa de tráfico...
+            </div>
           </div>
         </div>
       </div>
@@ -287,6 +348,18 @@
 
 <script>
 import { ref, computed, onMounted, nextTick } from 'vue';
+import carrosLogo from '../assets/carros.png';
+
+const WMO_LABELS = {
+  0: 'Despejado', 1: 'Mayormente despejado', 2: 'Parcialmente nublado', 3: 'Nublado',
+  45: 'Niebla', 48: 'Niebla helada',
+  51: 'Llovizna ligera', 53: 'Llovizna moderada', 55: 'Llovizna densa',
+  61: 'Lluvia ligera', 63: 'Lluvia moderada', 65: 'Lluvia fuerte',
+  71: 'Nieve ligera', 73: 'Nieve moderada', 75: 'Nieve fuerte', 77: 'Granizo fino',
+  80: 'Chubascos ligeros', 81: 'Chubascos moderados', 82: 'Chubascos fuertes',
+  85: 'Granizada ligera', 86: 'Granizada fuerte',
+  95: 'Tormenta eléctrica', 96: 'Tormenta con granizo', 99: 'Tormenta con granizo'
+};
 
 export default {
   name: 'App',
@@ -298,11 +371,60 @@ export default {
     const isStreaming = ref(false);
     const streamingContent = ref('');
     const chatArea = ref(null);
+    const inputTextarea = ref(null);
+    const isResettingChat = ref(false);
     const showConfig = ref(false);
-    const selectedModel = ref('gemma-4-31b-it');
+    const selectedModel = ref('gemini-3.1-flash-lite');
     const weatherData = ref(null);
+    const weatherLocationName = ref('Detectando...');
+    const isLocatingWeather = ref(false);
     const trafficAlerts = ref([]);
     const isDarkMode = ref(false);
+
+    // TomTom Routing State
+    const routeEstimates = ref([]);
+    const isLoadingRoutes = ref(false);
+
+    // TomTom Map State (Option 2)
+    const tomtomMapRef = ref(null);
+    const isMapLoaded = ref(false);
+    let ttMapInstance = null;
+
+    function getWeatherCondition(code, isDay = 1) {
+      if (code === undefined || code === null) return { label: 'Sin datos', emoji: '🌡️' };
+      
+      const label = WMO_LABELS[code] || 'Clima variable';
+      let emoji = '🌡️';
+
+      if (code === 0) emoji = isDay ? '☀️' : '🌙';
+      else if (code === 1) emoji = isDay ? '🌤️' : '🌙';
+      else if (code === 2) emoji = isDay ? '⛅' : '☁️';
+      else if (code === 3) emoji = '☁️';
+      else if (code === 45 || code === 48) emoji = '🌫️';
+      else if (code >= 51 && code <= 57) emoji = isDay ? '🌦️' : '🌧️';
+      else if (code >= 61 && code <= 67) emoji = '🌧️';
+      else if (code >= 71 && code <= 77) emoji = '❄️';
+      else if (code >= 80 && code <= 82) emoji = isDay ? '🌦️' : '🌧️';
+      else if (code >= 85 && code <= 86) emoji = '🌨️';
+      else if (code >= 95 && code <= 99) emoji = '⛈️';
+
+      const customLabel = (!isDay && code <= 1) ? 'Noche despejada' : (!isDay && code === 2) ? 'Noche parcialmente nublada' : label;
+
+      return { label: customLabel, emoji };
+    }
+
+    const weatherCondition = computed(() => {
+      if (!weatherData.value || weatherData.value.weathercode === undefined) {
+        return { label: 'Sin datos', emoji: '🌡️' };
+      }
+      // Detección automática del ciclo día/noche de la ubicación
+      let isDay = weatherData.value.is_day;
+      if (isDay === undefined) {
+        const currentHour = new Date().getHours();
+        isDay = (currentHour >= 6 && currentHour < 18.5) ? 1 : 0;
+      }
+      return getWeatherCondition(weatherData.value.weathercode, isDay);
+    });
     
     // Modal state
     const showDeleteModal = ref(false);
@@ -321,7 +443,6 @@ export default {
 
     onMounted(async () => {
       fetchWeather();
-      fetchAlerts();
       await loadConversations();
     });
 
@@ -380,36 +501,165 @@ export default {
       }
     }
 
-    async function fetchWeather() {
+    async function fetchWeatherForCoords(lat, lon, customName = null) {
       try {
-        const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-0.2298&longitude=-78.5249&current_weather=true');
+        fetchRoutesInfo(lat, lon); 
+        initTomTomMap(lat, lon); 
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         weatherData.value = data.current_weather;
-      } catch (e) {}
-    }
 
-    async function fetchAlerts() {
-      try {
-        const apiKey = import.meta.env.VITE_TOMTOM_API_KEY;
-        const bbox = '-78.5869,-0.3601,-78.4116,-0.0911';
-        const url = `https://api.tomtom.com/traffic/services/5/incidentDetails?key=${apiKey}&bbox=${bbox}&language=es-ES&fields={incidents{type,geometry{type,coordinates},properties{iconCategory,magnitudeOfDelay,events{description,code,iconCategory}}}}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data && data.incidents && data.incidents.length > 0) {
-          trafficAlerts.value = data.incidents.slice(0, 3).map(inc => {
-            let desc = inc.properties.events?.[0]?.description || 'Alerta de tráfico';
-            const cat = inc.properties.iconCategory;
-            let emoji = '⚠️';
-            if (cat === 1) emoji = '🚗'; 
-            else if (cat === 6) emoji = '⛔'; 
-            else if (cat === 9) emoji = '🚧'; 
-            return { text: `${emoji} ${desc}` };
-          });
+        if (customName) {
+          weatherLocationName.value = customName;
         } else {
-          trafficAlerts.value = [{ text: '✅ Todo despejado en la ciudad' }];
+          try {
+            const geoRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=es`);
+            if (geoRes.ok) {
+              const geoData = await geoRes.json();
+              const place = geoData.city || geoData.locality || geoData.principalSubdivision || geoData.countryName;
+              weatherLocationName.value = place ? place : 'Ubicación actual';
+            } else {
+              weatherLocationName.value = 'Ubicación actual';
+            }
+          } catch (geoErr) {
+            console.warn('Geocodificación inversa fallida:', geoErr);
+            weatherLocationName.value = 'Ubicación actual';
+          }
         }
       } catch (e) {
-        trafficAlerts.value = [{ text: '⚠️ Error al cargar alertas' }];
+        console.error('Error obteniendo clima:', e);
+        weatherData.value = null;
+      }
+    }
+
+    async function fetchWeather() {
+      isLocatingWeather.value = true;
+
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            try {
+              const lat = position.coords.latitude;
+              const lon = position.coords.longitude;
+              await fetchWeatherForCoords(lat, lon);
+            } catch (e) {
+              console.error('Error procesando coordenadas GPS:', e);
+              await fetchWeatherForCoords(-0.2298, -78.5249, 'Quito (Predeterminado)');
+            } finally {
+              isLocatingWeather.value = false;
+            }
+          },
+          async (err) => {
+            console.warn('Geolocalización rechazada o no disponible. Usando Quito predeterminado:', err.message);
+            await fetchWeatherForCoords(-0.2298, -78.5249, 'Quito (Predeterminado)');
+            isLocatingWeather.value = false;
+          },
+          { timeout: 8000, enableHighAccuracy: true }
+        );
+      } else {
+        await fetchWeatherForCoords(-0.2298, -78.5249, 'Quito (Predeterminado)');
+        isLocatingWeather.value = false;
+      }
+    }
+
+    async function fetchRoutesInfo(userLat = -0.2298, userLon = -78.5249) {
+      isLoadingRoutes.value = true;
+      try {
+        const apiKey = import.meta.env.VITE_TOMTOM_API_KEY;
+        const destinations = [
+          { title: '✈️ Aeropuerto Mariscal Sucre', destLat: -0.1292, destLon: -78.3575 },
+          { title: '🎓 Universidad Central del Ecuador', destLat: -0.1997, destLon: -78.5061 },
+          { title: '🚌 Terminal Terrestre Quitumbe', destLat: -0.2789, destLon: -78.5442 }
+        ];
+
+        const results = await Promise.all(
+          destinations.map(async (d) => {
+            const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLon}&destination=${d.destLat},${d.destLon}`;
+            try {
+              const url = `https://api.tomtom.com/routing/1/calculateRoute/${userLat},${userLon}:${d.destLat},${d.destLon}/json?key=${apiKey}&traffic=true`;
+              const res = await fetch(url);
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              const data = await res.json();
+              const summary = data.routes?.[0]?.summary;
+              if (summary) {
+                const minutes = Math.round(summary.travelTimeInSeconds / 60);
+                const delayMin = Math.round((summary.trafficDelayInSeconds || 0) / 60);
+                let trafficStatus = { text: '🟢 Fluido', color: '#10b981' };
+                if (delayMin > 5) {
+                  trafficStatus = { text: `🔴 +${delayMin}m tráfico`, color: '#ef4444' };
+                } else if (delayMin > 1) {
+                  trafficStatus = { text: `🟡 +${delayMin}m moderado`, color: '#f59e0b' };
+                }
+                return {
+                  title: d.title,
+                  timeText: `${minutes}m`,
+                  trafficStatus,
+                  mapsUrl
+                };
+              }
+            } catch (e) {
+              console.warn(`Error calculando ruta para ${d.title}:`, e);
+            }
+            return {
+              title: d.title,
+              timeText: 'N/D',
+              trafficStatus: { text: '🧭 Ver mapa', color: '#64748b' },
+              mapsUrl
+            };
+          })
+        );
+
+        routeEstimates.value = results;
+      } catch (e) {
+        console.error('Error calculando estimado de rutas TomTom:', e);
+      } finally {
+        isLoadingRoutes.value = false;
+      }
+    }
+
+    //Fallback para que no se rompa si no hay API Key
+
+    function initTomTomMap(lat = -0.2298, lon = -78.5249) {
+      const apiKey = import.meta.env.VITE_TOMTOM_API_KEY;
+      if (!apiKey) return;
+
+      if (!window.tt) {
+        const cssLink = document.createElement('link');
+        cssLink.rel = 'stylesheet';
+        cssLink.href = 'https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps.css';
+        document.head.appendChild(cssLink);
+
+        const jsScript = document.createElement('script');
+        jsScript.src = 'https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps-web.min.js';
+        jsScript.onload = () => createTomTomMap(apiKey, lat, lon);
+        document.head.appendChild(jsScript);
+      } else {
+        createTomTomMap(apiKey, lat, lon);
+      }
+    }
+
+    function createTomTomMap(apiKey, lat, lon) {
+      if (!tomtomMapRef.value || !window.tt) return;
+      try {
+        if (ttMapInstance) {
+          ttMapInstance.remove();
+        }
+        ttMapInstance = window.tt.map({
+          key: apiKey,
+          container: tomtomMapRef.value,
+          center: [lon, lat],
+          zoom: 12.5,
+          stylesVisibility: {
+            trafficIncidents: true,
+            trafficFlow: true
+          }
+        });
+        
+        isMapLoaded.value = true;
+        ttMapInstance.addControl(new window.tt.NavigationControl());
+      } catch (e) {
+        console.error('Error al renderizar mapa de TomTom:', e);
       }
     }
 
@@ -418,16 +668,25 @@ export default {
       isDarkMode.value = !isDarkMode.value;
     }
 
-    function newConversation() {
+    async function newConversation() {
       const id = crypto.randomUUID();
       activeConversationId.value = id;
       localMessages.value[id] = [];
+      inputMessage.value = '';
       streamingContent.value = '';
+      isStreaming.value = false;
+
+      isResettingChat.value = true;
+      setTimeout(() => {
+        isResettingChat.value = false;
+      }, 300);
+
+      await nextTick();
+      if (inputTextarea.value) {
+        inputTextarea.value.focus();
+      }
     }
 
-    function saveModel() {
-      console.log("Model changed to:", selectedModel.value);
-    }
 
     // ─── ANALYZER LOGIC ──────────────────────────────────────────────────────
     function getInfractionData(content) {
@@ -573,9 +832,11 @@ export default {
     return {
       conversations, activeConversationId, currentMessages, inputMessage, isStreaming, streamingContent,
       chatArea, showConfig, selectedModel, weatherData, trafficAlerts, suggestedQuestions, isDarkMode,
-      showDeleteModal, convToDelete,
-      newConversation, selectConversation, deleteConversation, confirmDelete, saveModel, sendMessage, sendSuggestion, 
-      getInfractionData, getGravityClass, getNeedleAngle, formatMessage, toggleTheme
+      showDeleteModal, convToDelete, weatherLocationName, isLocatingWeather,
+      weatherCondition, fetchWeather, routeEstimates, isLoadingRoutes, fetchRoutesInfo,
+      tomtomMapRef, isMapLoaded, initTomTomMap, inputTextarea, isResettingChat,
+      newConversation, selectConversation, deleteConversation, confirmDelete, sendMessage, sendSuggestion, 
+      getInfractionData, getGravityClass, getNeedleAngle, formatMessage, toggleTheme, carrosLogo
     };
   }
 };

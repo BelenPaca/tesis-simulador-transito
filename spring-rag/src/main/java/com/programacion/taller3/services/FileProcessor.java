@@ -17,12 +17,7 @@ import java.util.Map;
 public class FileProcessor {
 
     public List<Document> procesar(File file) {
-
-        // ejemplo con pdf
-
         Resource resource = new FileSystemResource(file);
-//        PagePdfDocumentReader reader = new PagePdfDocumentReader(resource);
-
         TikaDocumentReader reader = new TikaDocumentReader(resource);
         List<Document> documents = reader.get();
 
@@ -33,10 +28,6 @@ public class FileProcessor {
         }).toList();
 
         System.out.println("Documentos creados: " + documentosConMetadata.size());
-//        System.out.println("Pagina 0");
-//
-//        System.out.println(documents.getFirst());
-
         return documentosConMetadata;
 
     }

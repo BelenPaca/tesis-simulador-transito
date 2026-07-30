@@ -6,7 +6,7 @@
       <div class="glass-card">
         <div class="brand-header-landing">
           <div class="brand-icon-landing">
-            <img src="/carros.png" alt="Logo" />
+            <img :src="carrosLogo" alt="Logo" />
           </div>
           <div class="brand-text-landing">
             <span class="brand-subtitle-landing">ASISTENTE</span>
@@ -40,6 +40,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import carrosLogo from '../assets/carros.png'
 
 const router = useRouter()
 const isLoading = ref(false)

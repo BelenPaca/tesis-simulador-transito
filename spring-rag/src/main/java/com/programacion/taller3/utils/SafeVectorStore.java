@@ -9,10 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Decorador para VectorStore que limpia los metadatos complejos (como objetos de la API de OpenAI/Groq)
- * que causan errores de tipo "Unsupported Qdrant value type" al intentar guardarlos en Qdrant.
- */
 public class SafeVectorStore implements VectorStore {
 
     private final VectorStore delegate;

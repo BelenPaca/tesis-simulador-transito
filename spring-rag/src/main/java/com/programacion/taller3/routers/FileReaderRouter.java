@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class FileReaderRouter extends RouteBuilder {
 
-    @Value("${app.files.inbound:C:/Users/belen/Documents/Taller 3 G}")
+    @Value("${app.files.inbound:./inbound}")
     String inboundPath;
 
     @Override

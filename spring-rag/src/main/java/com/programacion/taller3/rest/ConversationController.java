@@ -8,10 +8,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * Controller REST para gestionar conversaciones persistentes.
- * Provee endpoints CRUD para listar, obtener historial y eliminar conversaciones.
- */
 @RestController
 @RequestMapping("/api/conversations")
 public class ConversationController {
@@ -22,25 +18,16 @@ public class ConversationController {
         this.conversationService = conversationService;
     }
 
-    /**
-     * Lista todas las conversaciones guardadas.
-     */
     @GetMapping
     public ResponseEntity<List<Conversation>> listConversations() {
         return ResponseEntity.ok(conversationService.listConversations());
     }
 
-    /**
-     * Obtiene el historial de mensajes de una conversación.
-     */
     @GetMapping("/{id}/messages")
     public ResponseEntity<List<ChatMessage>> getMessages(@PathVariable String id) {
         return ResponseEntity.ok(conversationService.getMessages(id));
     }
 
-    /**
-     * Elimina una conversación y todos sus mensajes.
-     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteConversation(@PathVariable String id) {
         conversationService.deleteConversation(id);

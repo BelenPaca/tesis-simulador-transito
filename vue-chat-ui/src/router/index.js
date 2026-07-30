@@ -18,4 +18,16 @@ const router = createRouter({
   ]
 })
 
+let isInitialLoad = true
+
+router.beforeEach((to, from, next) => {
+  if (isInitialLoad) {
+    isInitialLoad = false
+    if (to.path !== '/') {
+      return next('/')
+    }
+  }
+  next()
+})
+
 export default router
