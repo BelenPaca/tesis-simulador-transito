@@ -58,11 +58,11 @@ Navega a la carpeta del backend `spring-rag` e inicia los servicios requeridos c
 ```bash
 cd spring-rag
 
-# Iniciar la máquina virtual de Podman (si aplica)
-podman machine start
-
 # Iniciar contenedores de PostgreSQL y Qdrant en segundo plano
-podman-compose -f podman-compose.yml up -d
+podman compose up -d
+
+# Detiene y elimina contenedores
+podman compose down
 ```
 
 ### 2. Backend (Spring Boot)
