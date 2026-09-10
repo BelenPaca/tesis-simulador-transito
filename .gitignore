@@ -51,4 +51,7 @@ qdrant_storage/
 *.bin
 *.safetensors
 spring-rag/src/main/resources/models/*.onnx
+
+### Temporary Processed Inbound PDFs ###
+spring-rag/inbound/
 
