@@ -706,6 +706,7 @@
 
 <script>
 import { ref, computed, onMounted, nextTick } from 'vue';
+import { API_BASE_URL } from '../config.js';
 import carrosLogo from '../assets/carros.png';
 import clipIcon from '../assets/clip.png';
 
@@ -825,7 +826,7 @@ export default {
     // ─── API FETCHING ────────────────────────────────────────────────────────
     async function loadConversations() {
       try {
-        const res = await fetch('/api/conversations');
+        const res = await fetch(`${API_BASE_URL}/api/conversations`);
         if (res.ok) {
           const allConvs = await res.json();
           const hiddenIds = new Set(JSON.parse(localStorage.getItem('transiai_hidden_conv_ids') || '[]'));
@@ -849,7 +850,7 @@ export default {
 
       if (!localMessages.value[id] || localMessages.value[id].length === 0) {
         try {
-          const res = await fetch(`/api/conversations/${id}/messages`);
+          const res = await fetch(`${API_BASE_URL}/api/conversations/${id}/messages`);
           if (res.ok) {
             localMessages.value[id] = await res.json();
           }
@@ -872,7 +873,7 @@ export default {
       if (!id) return;
       
       try {
-        await fetch(`/api/conversations/${id}`, { method: 'DELETE' });
+        await fetch(`${API_BASE_URL}/api/conversations/${id}`, { method: 'DELETE' });
       } catch (e) {
         console.error('Error eliminando conversación en backend:', e);
       } finally {
@@ -1154,7 +1155,7 @@ export default {
       scrollToBottom();
 
       try {
-        const response = await fetch('/api/chat', {
+        const response = await fetch(`${API_BASE_URL}/api/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1260,7 +1261,7 @@ export default {
       formData.append('file', file);
 
       try {
-        const response = await fetch('/api/documents/upload', {
+        const response = await fetch(`${API_BASE_URL}/api/documents/upload`, {
           method: 'POST',
           body: formData
         });
@@ -1335,20 +1336,20 @@ export default {
     async function confirmClearAllHistory() {
       let currentIds = conversations.value.map(c => c.id);
       try {
-        const res = await fetch('/api/conversations').catch(() => null);
+        const res = await fetch(`${API_BASE_URL}/api/conversations`).catch(() => null);
         if (res && res.ok) {
           const remoteConvs = await res.json().catch(() => []);
           currentIds = Array.from(new Set([...currentIds, ...remoteConvs.map(c => c.id)]));
         }
 
         // 1. Eliminar en PostgreSQL usando el endpoint DELETE /api/conversations
-        await fetch('/api/conversations', { method: 'DELETE' }).catch(err => {
+        await fetch(`${API_BASE_URL}/api/conversations`, { method: 'DELETE' }).catch(err => {
           console.warn('DELETE /api/conversations:', err);
         });
 
         // 2. Si hay IDs activos, asegurar borrado individual como garantía adicional
         if (currentIds.length > 0) {
-          await Promise.allSettled(currentIds.map(id => fetch(`/api/conversations/${id}`, { method: 'DELETE' })));
+          await Promise.allSettled(currentIds.map(id => fetch(`${API_BASE_URL}/api/conversations/${id}`, { method: 'DELETE' })));
         }
       } catch (e) {
         console.error('Error al borrar todo el historial en backend:', e);
