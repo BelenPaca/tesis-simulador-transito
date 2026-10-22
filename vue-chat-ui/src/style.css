@@ -1414,18 +1414,19 @@ textarea { flex: 1; border: none; background: transparent; resize: none; font-fa
   line-height: 1.4;
 }
 
-/* SUCCESS MODAL (CHECK AZUL ESTILO GEMINI) */
+/* SUCCESS MODAL (CHECK VERDE ESTILO TRANSIAI) */
 .gemini-success-modal {
+  position: relative;
   max-width: 440px;
   width: 90%;
   border-radius: 24px;
-  padding: 32px 24px;
+  padding: 32px 28px 24px 28px;
   text-align: center;
 }
 .gemini-success-check-circle {
   width: 64px;
   height: 64px;
-  background-color: #1a73e8;
+  background-color: #0db37b;
   color: white;
   border-radius: 50%;
   display: flex;
@@ -1434,7 +1435,7 @@ textarea { flex: 1; border: none; background: transparent; resize: none; font-fa
   font-size: 32px;
   font-weight: 800;
   margin: 0 auto 18px auto;
-  box-shadow: 0 4px 16px rgba(26, 115, 232, 0.35);
+  box-shadow: 0 4px 16px rgba(13, 179, 123, 0.35);
   animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 @keyframes popIn {
@@ -1442,40 +1443,74 @@ textarea { flex: 1; border: none; background: transparent; resize: none; font-fa
   100% { transform: scale(1); opacity: 1; }
 }
 
-.gemini-privacy-hint {
-  background: rgba(26, 115, 232, 0.08);
-  border: 1px solid rgba(26, 115, 232, 0.2);
-  border-radius: 14px;
-  padding: 12px 14px;
-  font-size: 12px;
-  color: var(--text-primary);
+.gemini-modal-close-icon {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  gap: 10px;
-  text-align: left;
-  line-height: 1.4;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
-.dark-theme .gemini-privacy-hint {
-  background: rgba(26, 115, 232, 0.15);
-  border-color: rgba(26, 115, 232, 0.3);
+.gemini-modal-close-icon:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-primary);
+}
+.dark-theme .gemini-modal-close-icon:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.gemini-modal-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+}
+.dark-theme .gemini-modal-footer-row {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.gemini-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+.gemini-checkbox-label input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: #0db37b;
 }
 
 .gemini-blue-btn {
-  background: #1a73e8;
+  background: #0db37b;
   color: white;
   border: none;
-  padding: 10px 28px;
-  border-radius: 24px;
-  font-size: 14px;
+  padding: 9px 26px;
+  border-radius: 20px;
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin: 0 auto;
 }
 .gemini-blue-btn:hover {
-  background: #1557b0;
+  background: #0aa06c;
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.4);
+  box-shadow: 0 2px 8px rgba(13, 179, 123, 0.4);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════

@@ -4,7 +4,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
 }
 
-group = "com.example"
+group = "com.programacion.taller3"
 version = "0.0.1-SNAPSHOT"
 
 java {
@@ -21,6 +21,7 @@ extra["springAiVersion"] = "2.0.0"
 
 dependencies {
     implementation("org.springframework.ai:spring-ai-starter-model-google-genai")
+    implementation("org.springframework.ai:spring-ai-google-genai-embedding")
 
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
@@ -31,31 +32,17 @@ dependencies {
     implementation("org.springframework.ai:spring-ai-pdf-document-reader")
     implementation("org.springframework.ai:spring-ai-tika-document-reader")
 
-    // MEbedingEmbedings
-
     //--Vector Store
     implementation("org.springframework.ai:spring-ai-starter-vector-store-qdrant")
     implementation("org.springframework.ai:spring-ai-vector-store-advisor")
 
-    // --Embeddings
-    implementation("org.springframework.ai:spring-ai-starter-model-transformers")
-
     // Eips
     implementation("org.apache.camel.springboot:camel-spring-boot-starter:4.20.0")
     implementation("org.apache.camel.springboot:camel-file-starter:4.20.0")
-
-    //Dcoker
-    runtimeOnly("org.springframework.boot:spring-boot-docker-compose")
-
 }
-
 
 dependencyManagement {
     imports {
         mavenBom("org.springframework.ai:spring-ai-bom:${property("springAiVersion")}")
     }
-}
-
-configurations.all {
-    exclude(group = "ai.djl.pytorch")
 }

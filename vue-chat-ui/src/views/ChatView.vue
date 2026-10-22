@@ -63,18 +63,18 @@
 
             <div class="activity-section-title">
               <span>Consultas registradas</span>
-              <span style="font-size: 11px; color: var(--text-secondary);">({{ conversations.length }} chats)</span>
+              <span style="font-size: 11px; color: var(--text-secondary);">({{ allConvsList.length }} chats)</span>
             </div>
 
             <div class="activity-list">
-              <div v-if="conversations.length === 0" style="text-align: center; color: var(--text-secondary); padding: 20px; font-size: 13px;">
+              <div v-if="allConvsList.length === 0" style="text-align: center; color: var(--text-secondary); padding: 20px; font-size: 13px;">
                 No hay actividad reciente registrada en la vista.
               </div>
-              <div v-for="conv in conversations" :key="conv.id" class="activity-item">
+              <div v-for="conv in allConvsList" :key="conv.id" class="activity-item">
                 <div class="activity-item-header">
                   <span style="font-size: 12px; color: #0db37b; font-weight: 600;">TransiAI</span>
                   <div class="has-custom-tooltip">
-                    <button class="activity-del-btn" @click.stop="deleteConversation(conv.id)" aria-label="Eliminar consulta">
+                    <button class="activity-del-btn" @click.stop="deleteActivityConversation(conv.id)" aria-label="Eliminar consulta">
                       ✕
                     </button>
                     <div class="custom-tooltip-pill tooltip-left">
@@ -236,22 +236,23 @@
       </div>
     </transition>
 
-    <!-- 4. Modal de Éxito: Check Azul estilo Gemini -->
+    <!-- 4. Modal de Éxito: Check Verde estilo TransiAI -->
     <transition name="fade">
-      <div v-if="showSuccessClearModal" class="modal-overlay" @click.self="showSuccessClearModal = false">
+      <div v-if="showSuccessClearModal" class="modal-overlay" @click.self="dismissSuccessClearModal">
         <div class="modal-box gemini-success-modal">
+          <button class="gemini-modal-close-icon" @click="dismissSuccessClearModal" aria-label="Cerrar">✕</button>
           <div class="gemini-success-check-circle">✓</div>
           <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Eliminación completada</h3>
           <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px;">
-            La actividad seleccionada se ha eliminado y ya no aparece en tu historial. Puedes iniciar una nueva conversación cuando lo desees.
+            La actividad seleccionada se ha eliminado de tu historial permanentemente.
           </p>
-          <div class="gemini-privacy-hint">
-            <span style="font-size: 16px;"></span>
-            <span>Tu pantalla actual se ha despejado. Puedes comenzar una nueva consulta cuando lo desees.</span>
-          </div>
-          <div class="modal-actions" style="margin-top: 24px;">
-            <button class="gemini-blue-btn" @click="showSuccessClearModal = false">
-              Entiendo
+          <div class="gemini-modal-footer-row">
+            <label class="gemini-checkbox-label">
+              <input type="checkbox" v-model="dontShowDeleteNoticeAgain" />
+              <span>No volver a mostrar en 30 días</span>
+            </label>
+            <button class="gemini-blue-btn" @click="dismissSuccessClearModal">
+              Entendido
             </button>
           </div>
         </div>
@@ -309,13 +310,13 @@
             </span>
             <div class="has-custom-tooltip">
               <button class="conv-del-btn"
-                      @click.stop="deleteConversation(conv.id)"
+                      @click.stop="deleteSidebarConversation(conv.id)"
                       @mouseenter="onConvMouseLeave"
                       aria-label="Eliminar consulta">
                 ✕
               </button>
               <div class="custom-tooltip-pill tooltip-top align-right">
-                Eliminar consulta
+                Eliminar de recientes
               </div>
             </div>
           </div>
@@ -725,6 +726,7 @@ export default {
   name: 'App',
   setup() {
     const conversations = ref([]);
+    const allConvsList = ref([]);
     const activeConversationId = ref(null);
     const localMessages = ref({}); 
     const inputMessage = ref('');
@@ -829,6 +831,7 @@ export default {
         const res = await fetch(`${API_BASE_URL}/api/conversations`);
         if (res.ok) {
           const allConvs = await res.json();
+          allConvsList.value = allConvs;
           const hiddenIds = new Set(JSON.parse(localStorage.getItem('transiai_hidden_conv_ids') || '[]'));
 
           // Retirar clave temporal de borrado para que cualquier consulta nueva siempre sea visible
@@ -863,20 +866,59 @@ export default {
       scrollToBottom();
     }
 
-    function deleteConversation(id) {
-      convToDelete.value = id;
-      showDeleteModal.value = true;
+    const SUPPRESS_DELETE_NOTICE_KEY = 'transiai_suppress_delete_notice_until';
+    const dontShowDeleteNoticeAgain = ref(false);
+
+    function isDeleteNoticeSuppressed() {
+      const until = localStorage.getItem(SUPPRESS_DELETE_NOTICE_KEY);
+      if (!until) return false;
+      const num = parseInt(until, 10);
+      if (isNaN(num)) return false;
+      return Date.now() < num;
     }
 
-    async function confirmDelete() {
-      const id = convToDelete.value;
+    function dismissSuccessClearModal() {
+      if (dontShowDeleteNoticeAgain.value) {
+        const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+        localStorage.setItem(SUPPRESS_DELETE_NOTICE_KEY, String(Date.now() + thirtyDaysMs));
+      }
+      showSuccessClearModal.value = false;
+      dontShowDeleteNoticeAgain.value = false;
+    }
+
+    // Eliminación rápida desde la barra lateral: solo quita de Recientes sin popups molestos
+    function deleteSidebarConversation(id) {
       if (!id) return;
-      
+      const hiddenIds = JSON.parse(localStorage.getItem('transiai_hidden_conv_ids') || '[]');
+      if (!hiddenIds.includes(id)) {
+        hiddenIds.push(id);
+        localStorage.setItem('transiai_hidden_conv_ids', JSON.stringify(hiddenIds));
+      }
+      conversations.value = conversations.value.filter(c => c.id !== id);
+      if (activeConversationId.value === id) {
+        activeConversationId.value = null;
+      }
+    }
+
+    // Eliminación formal desde el panel de Actividad: permanente en base de datos
+    function deleteActivityConversation(id) {
+      convToDelete.value = id;
+      if (isDeleteNoticeSuppressed()) {
+        executePermanentDelete(id);
+        convToDelete.value = null;
+      } else {
+        showDeleteModal.value = true;
+      }
+    }
+
+    async function executePermanentDelete(id) {
+      if (!id) return;
       try {
         await fetch(`${API_BASE_URL}/api/conversations/${id}`, { method: 'DELETE' });
       } catch (e) {
         console.error('Error eliminando conversación en backend:', e);
       } finally {
+        allConvsList.value = allConvsList.value.filter(c => c.id !== id);
         conversations.value = conversations.value.filter(c => c.id !== id);
         delete localMessages.value[id];
 
@@ -889,9 +931,20 @@ export default {
         if (activeConversationId.value === id) {
           activeConversationId.value = null;
         }
-        showDeleteModal.value = false;
-        convToDelete.value = null;
       }
+    }
+
+    async function confirmDelete() {
+      const id = convToDelete.value;
+      if (!id) return;
+
+      await executePermanentDelete(id);
+      showDeleteModal.value = false;
+      convToDelete.value = null;
+
+      // Mostrar aviso de éxito en verde TransiAI
+      dontShowDeleteNoticeAgain.value = false;
+      showSuccessClearModal.value = true;
     }
 
     async function fetchWeatherForCoords(lat, lon, customName = null) {
@@ -1361,6 +1414,7 @@ export default {
         localStorage.removeItem('transiai_activity_cleared_at');
 
         // 4. Limpiar estado reactivo
+        allConvsList.value = [];
         conversations.value = [];
         localMessages.value = {};
         activeConversationId.value = null;
@@ -1368,6 +1422,7 @@ export default {
         // 5. Cerrar modales y notificar éxito
         showConfirmClearAllModal.value = false;
         showActivityModal.value = false;
+        dontShowDeleteNoticeAgain.value = false;
         showSuccessClearModal.value = true;
       }
     }
@@ -1377,17 +1432,18 @@ export default {
     }
 
     return {
-      conversations, activeConversationId, currentMessages, inputMessage, isStreaming, streamingContent,
+      conversations, allConvsList, activeConversationId, currentMessages, inputMessage, isStreaming, streamingContent,
       chatArea, selectedModel, weatherData, trafficAlerts, suggestedQuestions, isDarkMode,
       showDeleteModal, showConfirmClearAllModal, convToDelete, weatherLocationName, isLocatingWeather,
       weatherCondition, fetchWeather, routeEstimates, isLoadingRoutes, fetchRoutesInfo,
       tomtomMapRef, isMapLoaded, initTomTomMap, inputTextarea, isResettingChat,
       fileInputRef, isUploading, uploadStatusMessage, uploadStatusColor, handleFileUpload, adjustTextareaHeight,
       showSettingsMenu, showThemeSubmenu, showActivityModal, showModelModal, showLegalModal, showSuccessClearModal,
+      dontShowDeleteNoticeAgain, dismissSuccessClearModal,
       openActivityModal, openModelModal, openLegalModal, clearChatActivity, confirmClearAllHistory,
       isMobileSidebarOpen, isMobileWidgetsOpen, closeMobileDrawers,
       hoveredConvTitle, hoveredTooltipTop, onConvMouseEnter, onConvMouseLeave,
-      newConversation, selectConversation, deleteConversation, confirmDelete, sendMessage, sendSuggestion, 
+      newConversation, selectConversation, deleteSidebarConversation, deleteActivityConversation, confirmDelete, sendMessage, sendSuggestion, 
       getInfractionData, getGravityClass, getNeedleAngle, formatMessage, toggleTheme, carrosLogo, clipIcon
     };
   }
