@@ -56,7 +56,7 @@ const startExperience = () => {
       progress.value = 100
       clearInterval(interval)
       setTimeout(() => {
-        router.push('/chat')
+        router.push({ path: '/chat', query: { newGuest: 'true' } })
       }, 400)
     }
   }, 150)

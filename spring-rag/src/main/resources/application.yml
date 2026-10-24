@@ -30,6 +30,14 @@ spring:
       enabled: false
 
   ai:
+    model:
+      embedding: transformers
+    embedding:
+      transformer:
+        onnx:
+          model-uri: classpath:models/model.onnx
+        tokenizer:
+          uri: classpath:models/tokenizer.json
     vectorstore:
       qdrant:
         host: ${QDRANT_HOST:localhost}
@@ -46,11 +54,6 @@ spring:
           enabled: true
           options:
             model: ${app.aimodel}
-        embedding:
-          api-key: ${app.key}
-          text:
-            options:
-              model: gemini-embedding-001
 
 logging:
   level:

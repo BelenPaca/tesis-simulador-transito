@@ -104,7 +104,7 @@
     <!-- 2. Modal Separado: Información del Modelo -->
     <transition name="fade">
       <div v-if="showModelModal" class="modal-overlay" @click.self="showModelModal = false">
-        <div class="modal-box gemini-settings-modal" style="max-width: 580px;">
+        <div class="modal-box gemini-settings-modal" style="max-width: 660px;">
           <div class="gemini-modal-top">
             <div class="gemini-modal-title">
               <h3>Información del Modelo de IA</h3>
@@ -116,17 +116,16 @@
             <!-- Tarjeta 1: Motor LLM -->
             <div class="gemini-card">
               <div class="gemini-card-header">
-                <span class="gemini-card-icon">🧠</span>
                 <div>
                   <h4>Motor de Lenguaje (LLM)</h4>
                   <p>Inferencia avanzada en tiempo real con Google Gemini</p>
                 </div>
               </div>
-              <div class="model-badge-container" style="margin: 8px 0 10px 0;">
+              <div class="model-badge-container">
                 <span class="model-badge-name">{{ selectedModel }}</span>
                 <span class="model-badge-status">● En línea</span>
               </div>
-              <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+              <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin: 0;">
                 Implementa <strong>Gemini 3.1 Flash Lite</strong>, un modelo multimodal de última generación optimizado para entregar respuestas con latencia ultra reducida, alta comprensión de lenguaje natural y procesamiento contextual especializado.
               </p>
             </div>
@@ -134,13 +133,12 @@
             <!-- Tarjeta 2: Arquitectura RAG -->
             <div class="gemini-card">
               <div class="gemini-card-header">
-                <span class="gemini-card-icon">⚡</span>
                 <div>
                   <h4>Arquitectura RAG (Generación Aumentada por Recuperación)</h4>
                   <p>Fundamentación jurídica exacta sin alucinaciones</p>
                 </div>
               </div>
-              <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 10px;">
+              <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 12px;">
                 Para garantizar que el modelo no invente leyes ni cometa errores normativos, el sistema aplica un flujo RAG de 4 fases:
               </p>
               <div class="rag-flow-steps">
@@ -166,23 +164,30 @@
             <!-- Tarjeta 3: Stack Tecnológico -->
             <div class="gemini-card">
               <div class="gemini-card-header">
-                <span class="gemini-card-icon">🛠️</span>
                 <div>
                   <h4>Infraestructura y Persistencia</h4>
                   <p>Orquestación en backend y almacenamiento seguro</p>
                 </div>
               </div>
               <div class="gemini-info-row">
-                <strong>Orquestador Backend:</strong> Spring Boot 4 + Spring AI (Java 17/21)
+                <span>Orquestador Backend:</span>
+                <strong>Spring Boot 4 + Spring AI (Java 25)</strong>
               </div>
               <div class="gemini-info-row">
-                <strong>Base de Datos Vectorial:</strong> Qdrant VectorStore (Embeddings multilingües)
+                <span>Motor de Embeddings:</span>
+                <strong>ONNX Runtime (384 dim - Inferencia Local)</strong>
               </div>
               <div class="gemini-info-row">
-                <strong>Base de Datos Relacional:</strong> PostgreSQL (Almacenamiento seguro del sistema)
+                <span>Base de Datos Vectorial:</span>
+                <strong>Qdrant Cloud Cluster (gRPC TLS)</strong>
               </div>
               <div class="gemini-info-row">
-                <strong>Streaming de Tokens:</strong> Server-Sent Events (SSE) para respuesta en tiempo real
+                <span>Base de Datos Relacional:</span>
+                <strong>Neon PostgreSQL 18 (Persistencia permanente)</strong>
+              </div>
+              <div class="gemini-info-row">
+                <span>Streaming de Tokens:</span>
+                <strong>Server-Sent Events (SSE en tiempo real)</strong>
               </div>
             </div>
           </div>
@@ -199,7 +204,7 @@
     <!-- 3. Modal Separado: Marco Legal -->
     <transition name="fade">
       <div v-if="showLegalModal" class="modal-overlay" @click.self="showLegalModal = false">
-        <div class="modal-box gemini-settings-modal">
+        <div class="modal-box gemini-settings-modal" style="max-width: 660px;">
           <div class="gemini-modal-top">
             <div class="gemini-modal-title">
               <h3>Marco Legal de Tránsito</h3>
@@ -210,19 +215,18 @@
           <div class="gemini-settings-content">
             <div class="gemini-card">
               <div class="gemini-card-header">
-                <span class="gemini-card-icon">📜</span>
                 <div>
                   <h4>Leyes y Reglamentos Integrados</h4>
-                  <p>Normativas indexadas en la base vectorial para resolver dudas jurídicas</p>
+                  <p>Normativas ecuatorianas indexadas en la base vectorial para resolver dudas jurídicas</p>
                 </div>
               </div>
-              <ul class="legal-framework-list" style="margin-top: 12px; gap: 8px;">
-                <li>📜 <strong>COIP:</strong> Código Orgánico Integral Penal (Infracciones de Tránsito)</li>
-                <li>🚗 <strong>LOTTTSV:</strong> Ley Orgánica de Transporte Terrestre, Tránsito y Seguridad Vial</li>
-                <li>📋 <strong>Reglamento:</strong> Reglamento General para la aplicación de la LOTTTSV</li>
-                <li>💼 <strong>Código del Trabajo:</strong> Indemnizaciones por accidentes y fallecimiento laboral</li>
-                <li>⚖️ <strong>COGEP:</strong> Código Orgánico General de Procesos</li>
-                <li>🇪🇨 <strong>Constitución:</strong> Constitución de la República del Ecuador</li>
+              <ul class="legal-framework-list">
+                <li><strong>COIP:</strong> Código Orgánico Integral Penal (Infracciones y Delitos de Tránsito)</li>
+                <li><strong>LOTTTSV:</strong> Ley Orgánica de Transporte Terrestre, Tránsito y Seguridad Vial</li>
+                <li><strong>Reglamento:</strong> Reglamento General para la aplicación de la LOTTTSV</li>
+                <li><strong>Código del Trabajo:</strong> Indemnizaciones por accidentes laborales y fallecimiento</li>
+                <li><strong>COGEP:</strong> Código Orgánico General de Procesos</li>
+                <li><strong>Constitución:</strong> Constitución de la República del Ecuador</li>
               </ul>
             </div>
           </div>
@@ -259,6 +263,34 @@
       </div>
     </transition>
 
+    <!-- 5. Modal de Inicio de Sesión TransiAI -->
+    <transition name="fade">
+      <div v-if="showLoginModal" class="modal-overlay" @click.self="showLoginModal = false">
+        <div class="modal-box login-transiai-modal">
+          <button class="login-modal-close-x" @click="showLoginModal = false" aria-label="Cerrar">✕</button>
+          
+          <div class="login-modal-header">
+            <div class="login-brand-icon">
+              <img :src="carrosLogo" alt="TransiAI" />
+            </div>
+            <h3>Iniciar sesión en TransiAI</h3>
+            <p>Accede a consultas sobre multas, sanciones y leyes de tránsito en Ecuador.</p>
+          </div>
+
+          <div class="login-modal-body">
+            <!-- Contenedor del Botón Oficial de Google Identity Services -->
+            <div id="g_id_signin_container" class="google-btn-wrapper"></div>
+          </div>
+
+          <div class="login-modal-footer">
+            <button class="btn-continue-as-guest" @click="showLoginModal = false">
+              Continuar como invitado
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
     <!-- Mobile Drawer Backdrop Overlay -->
     <transition name="fade">
       <div v-if="isMobileSidebarOpen || isMobileWidgetsOpen" class="mobile-drawer-overlay" @click="closeMobileDrawers"></div>
@@ -267,7 +299,7 @@
     <!-- ══════════ LEFT COLUMN (Sidebar) ══════════ -->
     <aside class="sidebar" :class="{ 'mobile-open': isMobileSidebarOpen }">
       <div class="brand-header">
-        <div class="brand-header-info" @click="$router.push('/')" style="cursor: pointer;">
+        <div class="brand-header-info" @click="goToHome" style="cursor: pointer;">
           <div class="has-custom-tooltip">
             <div class="brand-icon">
               <img :src="carrosLogo" alt="Logo" style="width: 28px; height: auto;" />
@@ -286,7 +318,7 @@
       </div>
 
       <button class="new-chat-btn" @click="newConversation">
-        💬 Nuevo chat
+        + Nuevo chat
       </button>
 
       <div class="nav-menu">
@@ -359,7 +391,7 @@
 
               <!-- Item 3: Información del Modelo -->
               <div class="gemini-menu-item" @click="openModelModal">
-                <span class="menu-icon">🧠</span>
+                <span class="menu-icon">💡</span>
                 <span class="menu-label">Información del Modelo</span>
               </div>
 
@@ -418,7 +450,7 @@
             <span class="hamburger-bar"></span>
             <span class="hamburger-bar"></span>
           </button>
-          <div class="mobile-brand-info" @click="$router.push('/')" title="Ir al Inicio">
+          <div class="mobile-brand-info" @click="goToHome" title="Ir al Inicio">
             <img :src="carrosLogo" alt="Logo" class="mobile-brand-logo" />
             <span class="mobile-brand-title">TransiAI</span>
           </div>
@@ -429,9 +461,33 @@
             <span style="font-size: 15px;">🌤️</span>
             <span class="mobile-widgets-label">Rutas & Clima</span>
           </button>
-          <div class="user-profile">
-            <span>Bienvenido</span>
-            <div class="user-avatar">👨‍💼</div>
+          <!-- Si NO ha iniciado sesión: Botón Iniciar sesión con estilo TransiAI -->
+          <div v-if="!currentUser" class="header-auth-container">
+            <button class="btn-login-header" @click="openLoginModal">
+              <span>Iniciar sesión</span>
+            </button>
+          </div>
+
+          <!-- Si SÍ ha iniciado sesión: Foto real de Google + Nombre + Dropdown -->
+          <div v-else class="user-profile-logged" @click.stop="showUserMenu = !showUserMenu">
+            <img v-if="currentUser.picture" :src="currentUser.picture" alt="Avatar" class="user-avatar-img" />
+            <div v-else class="user-avatar-initial">{{ (currentUser.name || 'U')[0] }}</div>
+            <span class="user-display-name">{{ currentUser.name }}</span>
+            <span class="user-dropdown-caret">▾</span>
+
+            <!-- Dropdown Menu de Usuario -->
+            <transition name="fade">
+              <div v-if="showUserMenu" class="user-dropdown-menu">
+                <div class="user-dropdown-info">
+                  <div class="ud-name">{{ currentUser.name }}</div>
+                  <div class="ud-email">{{ currentUser.email }}</div>
+                </div>
+                <div class="user-dropdown-divider"></div>
+                <button class="user-dropdown-item logout" @click.stop="logoutUser">
+                  Cerrar sesión
+                </button>
+              </div>
+            </transition>
           </div>
         </div>
       </div>
@@ -450,10 +506,10 @@
           
           <div class="suggestions-container">
             <button class="sug-btn sug-blue" @click="sendSuggestion(suggestedQuestions[0])">
-              <span class="sug-icon">🪪</span><span class="sug-text">{{ suggestedQuestions[0] }}</span><span class="sug-arrow">></span>
+              <span class="sug-icon">⏱️</span><span class="sug-text">{{ suggestedQuestions[0] }}</span><span class="sug-arrow">></span>
             </button>
             <button class="sug-btn sug-green" @click="sendSuggestion(suggestedQuestions[1])">
-              <span class="sug-icon">⏱️</span><span class="sug-text">{{ suggestedQuestions[1] }}</span><span class="sug-arrow">></span>
+              <span class="sug-icon">🪪</span><span class="sug-text">{{ suggestedQuestions[1] }}</span><span class="sug-arrow">></span>
             </button>
             <button class="sug-btn sug-purple" @click="sendSuggestion(suggestedQuestions[2])">
               <span class="sug-icon">⚠️</span><span class="sug-text">{{ suggestedQuestions[2] }}</span><span class="sug-arrow">></span>
@@ -465,11 +521,9 @@
         <div class="chat-messages" v-if="currentMessages.length > 0 || isStreaming">
           <div v-for="(msg, idx) in currentMessages" :key="idx" class="message-wrapper">
             <div class="message" :class="msg.role">
-              <div v-if="msg.role === 'assistant'" class="bot-avatar">🤖</div>
               <div class="message-bubble">
                 <div v-html="formatMessage(msg.content)"></div>
               </div>
-              <div v-if="msg.role === 'user'" class="user-avatar-small">👨‍💼</div>
             </div>
             
             <!-- INFRACTION ANALYZER -->
@@ -536,11 +590,11 @@
             </transition>
           </div>
           
-          <!-- Streaming Message -->
+          <!-- Streaming Message with Typewriter Cursor -->
           <div v-if="isStreaming" class="message assistant">
-             <div class="bot-avatar">🤖</div>
              <div class="message-bubble">
                <span v-html="formatMessage(streamingContent)"></span>
+               <span class="streaming-cursor" v-if="isStreaming"></span>
                <div class="typing-indicator" v-if="!streamingContent">
                  <span class="dot"></span>
                  <span class="dot"></span>
@@ -550,6 +604,21 @@
           </div>
         </div>
       </div>
+
+      <!-- Floating Guest 3-Response Prompt Pill Banner (Estilo ChatGPT / TransiAI) -->
+      <transition name="fade">
+        <div v-if="showGuestBanner && !currentUser" class="guest-prompt-banner">
+          <div class="guest-prompt-content">
+            <span class="guest-prompt-text">Obtén respuestas más detalladas, análisis de leyes de tránsito y más.</span>
+          </div>
+          <div class="guest-prompt-actions">
+            <button class="btn-login-header" @click="openLoginModal">
+              <span>Iniciar sesión</span>
+            </button>
+            <button class="btn-banner-dismiss" @click="dismissGuestBanner" title="Cerrar y seguir chateando">✕</button>
+          </div>
+        </div>
+      </transition>
 
       <!-- Input Area -->
       <div class="input-area">
@@ -619,17 +688,7 @@
             <span>Clima</span>
             <span style="color: #6ee7b7; font-size: 30px;">●</span>
           </div>
-          <div class="has-custom-tooltip">
-            <button class="refresh-loc-btn" @click="fetchWeather" aria-label="Ubicación">
-              <span :class="{ 'spin-icon': isLocatingWeather }">🔄</span>
-            </button>
-            <div class="custom-tooltip-pill tooltip-left">
-              Ubicación
-            </div>
-          </div>
         </div>
-
-
 
         <div class="weather-info-box" v-if="weatherData && !isLocatingWeather">
           <div class="weather-top-row">
@@ -640,11 +699,13 @@
             </div>
           </div>
           <div class="weather-details-row">
-            <div class="weather-detail-item">
-              📍 <strong>{{ weatherLocationName }}</strong>
+            <div class="weather-detail-item weather-loc-interactive" @click="fetchWeather" title="Clic para actualizar ubicación y clima">
+              <span class="loc-pin-icon" :class="{ 'spin-icon': isLocatingWeather }">📍</span>
+              <strong>{{ weatherLocationName }}</strong>
             </div>
             <div class="weather-detail-item">
-              💨 Viento: <span>{{ weatherData.windspeed }} km/h</span>
+              <span class="weather-wind-icon">💨</span>
+              <span>Viento: <strong>{{ weatherData.windspeed }} km/h</strong></span>
             </div>
           </div>
         </div>
@@ -707,7 +768,8 @@
 
 <script>
 import { ref, computed, onMounted, nextTick } from 'vue';
-import { API_BASE_URL } from '../config.js';
+import { useRoute, useRouter } from 'vue-router';
+import { API_BASE_URL, GOOGLE_CLIENT_ID } from '../config.js';
 import carrosLogo from '../assets/carros.png';
 import clipIcon from '../assets/clip.png';
 
@@ -725,6 +787,30 @@ const WMO_LABELS = {
 export default {
   name: 'App',
   setup() {
+    const route = useRoute();
+    const router = useRouter();
+
+    // ─── AUTHENTICATION & GUEST SESSION ──────────────────────────────────────
+    const currentUser = ref(null);
+    try {
+      const savedUser = localStorage.getItem('transiai_user');
+      if (savedUser) currentUser.value = JSON.parse(savedUser);
+    } catch (e) {}
+
+    let storedGuestId = localStorage.getItem('transiai_guest_id');
+    if (!storedGuestId) {
+      storedGuestId = 'guest_' + Math.random().toString(36).substring(2, 10);
+      localStorage.setItem('transiai_guest_id', storedGuestId);
+    }
+    const guestId = ref(storedGuestId);
+    const currentUserId = computed(() => currentUser.value?.email || guestId.value);
+
+    const guestResponsesCount = ref(parseInt(localStorage.getItem('transiai_guest_count') || '0', 10));
+    const showGuestBanner = ref(false);
+    const guestBannerDismissed = ref(false);
+    const showLoginModal = ref(false);
+    const showUserMenu = ref(false);
+
     const conversations = ref([]);
     const allConvsList = ref([]);
     const activeConversationId = ref(null);
@@ -806,8 +892,8 @@ export default {
     const convToDelete = ref(null);
 
     const suggestedQuestions = [
-      "¿Qué es una infracción de tránsito?",
       "¿Cuáles son los limites de velocidad permitidos?",
+      "¿Cómo consultar mis puntos en la licencia?",
       "¿Qué hacer en caso de un accidente?"
     ];
 
@@ -816,19 +902,189 @@ export default {
       return localMessages.value[activeConversationId.value] || [];
     });
 
+    function openLoginModal() {
+      showLoginModal.value = true;
+      nextTick(() => {
+        initGoogleAuth();
+      });
+    }
+
+    function dismissGuestBanner() {
+      showGuestBanner.value = false;
+      guestBannerDismissed.value = true;
+    }
+
+    function decodeJwt(token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function handleGoogleLoginCallback(response) {
+      if (response && response.credential) {
+        const payload = decodeJwt(response.credential);
+        if (payload) {
+          currentUser.value = {
+            name: payload.name || payload.given_name || 'Usuario',
+            email: payload.email,
+            picture: payload.picture
+          };
+          localStorage.setItem('transiai_user', JSON.stringify(currentUser.value));
+          showLoginModal.value = false;
+          showGuestBanner.value = false;
+
+          // Si el invitado tenía un chat activo con mensajes, migrarlo a su cuenta de Google
+          if (activeConversationId.value && (localMessages.value[activeConversationId.value]?.length > 0)) {
+            try {
+              await fetch(`${API_BASE_URL}/api/conversations/${activeConversationId.value}/assign-user`, {
+                method: 'PUT',
+                headers: {
+                  'X-User-Id': currentUser.value.email
+                }
+              });
+            } catch (err) {
+              console.warn('Error al migrar conversación activa:', err);
+            }
+          }
+
+          await loadConversations();
+        }
+      }
+    }
+
+    function initGoogleAuth() {
+      if (typeof window !== 'undefined' && window.google && window.google.accounts && window.google.accounts.id) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: handleGoogleLoginCallback,
+            auto_select: false
+          });
+          const btnContainer = document.getElementById('g_id_signin_container');
+          if (btnContainer) {
+            btnContainer.innerHTML = '';
+            window.google.accounts.id.renderButton(btnContainer, {
+              theme: isDarkMode.value ? 'filled_black' : 'outline',
+              size: 'large',
+              text: 'continue_with',
+              shape: 'pill',
+              locale: 'es'
+            });
+          }
+        } catch (err) {
+          console.warn('Error inicializando Google Auth:', err);
+        }
+      }
+    }
+
+    function logoutUser() {
+      currentUser.value = null;
+      localStorage.removeItem('transiai_user');
+      showUserMenu.value = false;
+
+      // 1. Generar nuevo ID de invitado fresco y limpiar el anterior
+      localStorage.removeItem('transiai_guest_id');
+      const freshGuestId = 'guest_' + Math.random().toString(36).substring(2, 10);
+      localStorage.setItem('transiai_guest_id', freshGuestId);
+      guestId.value = freshGuestId;
+
+      // 2. Resetear la pantalla a un chat totalmente blanco
+      activeConversationId.value = null;
+      localMessages.value = {};
+      conversations.value = [];
+      allConvsList.value = [];
+      streamingContent.value = '';
+      isStreaming.value = false;
+      inputMessage.value = '';
+
+      // 3. Reiniciar contadores de cortesía
+      guestResponsesCount.value = 0;
+      localStorage.setItem('transiai_guest_count', '0');
+      showGuestBanner.value = false;
+      guestBannerDismissed.value = false;
+
+      loadConversations();
+    }
+
+    function goToHome() {
+      if (!currentUser.value) {
+        // Al volver al inicio siendo invitado, limpiar para que al regresar sea un chat en blanco
+        localStorage.removeItem('transiai_guest_id');
+        localStorage.removeItem('transiai_guest_count');
+        activeConversationId.value = null;
+        localMessages.value = {};
+        conversations.value = [];
+        allConvsList.value = [];
+        guestResponsesCount.value = 0;
+        showGuestBanner.value = false;
+        guestBannerDismissed.value = false;
+      }
+      router.push('/');
+    }
+
     onMounted(async () => {
       fetchWeather();
-      await loadConversations();
+      
+      // Si entra desde la página de bienvenida (newGuest o promptAuth)
+      const fromLanding = route && route.query && (route.query.newGuest === 'true' || route.query.promptAuth === 'true');
+      if (fromLanding) {
+        activeConversationId.value = null;
+        streamingContent.value = '';
+        isStreaming.value = false;
+        inputMessage.value = '';
+      }
+
+      if (!currentUser.value) {
+        if (fromLanding) {
+          localStorage.removeItem('transiai_guest_id');
+          localStorage.removeItem('transiai_guest_count');
+          const freshGuestId = 'guest_' + Math.random().toString(36).substring(2, 10);
+          localStorage.setItem('transiai_guest_id', freshGuestId);
+          guestId.value = freshGuestId;
+          guestResponsesCount.value = 0;
+          localMessages.value = {};
+          conversations.value = [];
+          allConvsList.value = [];
+          showGuestBanner.value = false;
+          guestBannerDismissed.value = false;
+          openLoginModal();
+        } else {
+          await loadConversations();
+        }
+      } else {
+        await loadConversations();
+        if (fromLanding) {
+          activeConversationId.value = null;
+        }
+      }
+      
+      // Mostrar banner si el invitado ya tiene 3 o más respuestas acumuladas
+      if (!currentUser.value && guestResponsesCount.value >= 3 && !guestBannerDismissed.value) {
+        showGuestBanner.value = true;
+      }
+
       window.addEventListener('click', () => {
         showSettingsMenu.value = false;
         showThemeSubmenu.value = false;
+        showUserMenu.value = false;
       });
     });
 
     // ─── API FETCHING ────────────────────────────────────────────────────────
     async function loadConversations() {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/conversations`);
+        const res = await fetch(`${API_BASE_URL}/api/conversations`, {
+          headers: {
+            'X-User-Id': currentUserId.value
+          }
+        });
         if (res.ok) {
           const allConvs = await res.json();
           allConvsList.value = allConvs;
@@ -1210,11 +1466,15 @@ export default {
       try {
         const response = await fetch(`${API_BASE_URL}/api/chat`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-Id': currentUserId.value
+          },
           body: JSON.stringify({
             message: text,
             conversationId: convId,
-            model: selectedModel.value
+            model: selectedModel.value,
+            userId: currentUserId.value
           })
         });
 
@@ -1224,6 +1484,32 @@ export default {
         const decoder = new TextDecoder();
         let buffer = '';
         let currentEvent = '';
+
+        // Micro-despachador ultra rápido (4-5ms) para escritura viva fluida sin frenar la velocidad
+        const tokenQueue = [];
+        let isTyping = false;
+
+        async function drainQueue() {
+          if (isTyping) return;
+          isTyping = true;
+          while (tokenQueue.length > 0) {
+            const step = tokenQueue.length > 80 ? 8 : (tokenQueue.length > 30 ? 4 : (tokenQueue.length > 10 ? 2 : 1));
+            const chars = tokenQueue.splice(0, step).join('');
+            streamingContent.value += chars;
+            await nextTick();
+            scrollToBottom();
+            const delay = tokenQueue.length > 40 ? 1 : 5;
+            await new Promise(r => setTimeout(r, delay));
+          }
+          isTyping = false;
+        }
+
+        function pushTokens(chunkText) {
+          for (let i = 0; i < chunkText.length; i++) {
+            tokenQueue.push(chunkText[i]);
+          }
+          drainQueue();
+        }
 
         while (true) {
           const { done, value } = await reader.read();
@@ -1246,13 +1532,17 @@ export default {
                   const binaryString = atob(data);
                   const bytes = new Uint8Array(binaryString.length);
                   for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
-                  streamingContent.value += new TextDecoder('utf-8').decode(bytes);
-                  await nextTick();
-                  scrollToBottom();
+                  const decodedChunk = new TextDecoder('utf-8').decode(bytes);
+                  pushTokens(decodedChunk);
                 } catch (e) {}
               }
             }
           }
+        }
+
+        // Aguardar breves milisegundos si la cola está vaciándose
+        while (tokenQueue.length > 0 || isTyping) {
+          await new Promise(r => setTimeout(r, 10));
         }
 
         if (streamingContent.value) {
@@ -1260,6 +1550,15 @@ export default {
             role: 'assistant',
             content: streamingContent.value
           });
+
+          // Conteo de respuestas para modo invitado
+          if (!currentUser.value) {
+            guestResponsesCount.value++;
+            localStorage.setItem('transiai_guest_count', String(guestResponsesCount.value));
+            if (guestResponsesCount.value >= 3 && !guestBannerDismissed.value) {
+              showGuestBanner.value = true;
+            }
+          }
         }
       } catch (e) {
         console.error(e);
@@ -1389,14 +1688,19 @@ export default {
     async function confirmClearAllHistory() {
       let currentIds = conversations.value.map(c => c.id);
       try {
-        const res = await fetch(`${API_BASE_URL}/api/conversations`).catch(() => null);
+        const res = await fetch(`${API_BASE_URL}/api/conversations`, {
+          headers: { 'X-User-Id': currentUserId.value }
+        }).catch(() => null);
         if (res && res.ok) {
           const remoteConvs = await res.json().catch(() => []);
           currentIds = Array.from(new Set([...currentIds, ...remoteConvs.map(c => c.id)]));
         }
 
-        // 1. Eliminar en PostgreSQL usando el endpoint DELETE /api/conversations
-        await fetch(`${API_BASE_URL}/api/conversations`, { method: 'DELETE' }).catch(err => {
+        // 1. Eliminar en PostgreSQL usando el endpoint DELETE /api/conversations con filtro de usuario
+        await fetch(`${API_BASE_URL}/api/conversations`, {
+          method: 'DELETE',
+          headers: { 'X-User-Id': currentUserId.value }
+        }).catch(err => {
           console.warn('DELETE /api/conversations:', err);
         });
 
@@ -1432,6 +1736,7 @@ export default {
     }
 
     return {
+      currentUser, showGuestBanner, showLoginModal, showUserMenu, openLoginModal, dismissGuestBanner, logoutUser, goToHome,
       conversations, allConvsList, activeConversationId, currentMessages, inputMessage, isStreaming, streamingContent,
       chatArea, selectedModel, weatherData, trafficAlerts, suggestedQuestions, isDarkMode,
       showDeleteModal, showConfirmClearAllModal, convToDelete, weatherLocationName, isLocatingWeather,
