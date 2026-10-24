@@ -2252,6 +2252,7 @@ textarea { flex: 1; border: none; background: transparent; resize: none; font-fa
   backdrop-filter: blur(16px);
   animation: slideUpPrompt 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 60;
+  box-sizing: border-box;
 }
 
 .dark-theme .guest-prompt-banner {
@@ -2421,14 +2422,35 @@ textarea { flex: 1; border: none; background: transparent; resize: none; font-fa
 @media (max-width: 768px) {
   .guest-prompt-banner {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     border-radius: 16px;
-    padding: 10px 14px;
-    gap: 8px;
+    padding: 12px 14px;
+    gap: 10px;
+    width: calc(100% - 24px);
+    bottom: 110px;
+    box-sizing: border-box;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .guest-prompt-content {
+    width: 100%;
+    display: block;
+  }
+  .guest-prompt-text {
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    font-size: 13px;
+    line-height: 1.4;
+    text-overflow: clip;
+    overflow: visible;
+    display: block;
   }
   .guest-prompt-actions {
     width: 100%;
+    display: flex;
     justify-content: space-between;
+    align-items: center;
   }
 }
 

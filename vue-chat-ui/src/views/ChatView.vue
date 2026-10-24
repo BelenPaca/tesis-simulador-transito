@@ -144,7 +144,7 @@
               <div class="rag-flow-steps">
                 <div class="rag-step-item">
                   <span class="rag-step-num">1</span>
-                  <div><strong>Consulta del Usuario:</strong> El sistema procesa la consulta y genera un embedding vectorial matemático semántico.</div>
+                  <div><strong>Consulta del Usuario:</strong> El sistema procesa la consulta y genera un embedding vectorial matemático semántico {{ isCloudEnvironment ? 'mediante Google GenAI Embeddings (en la nube).' : 'mediante ONNX Runtime (inferencia local).' }}</div>
                 </div>
                 <div class="rag-step-item">
                   <span class="rag-step-num">2</span>
@@ -166,16 +166,16 @@
               <div class="gemini-card-header">
                 <div>
                   <h4>Infraestructura y Persistencia</h4>
-                  <p>Orquestación en backend y almacenamiento seguro</p>
+                  <p>{{ isCloudEnvironment ? 'Despliegue de alta disponibilidad en la nube (Render + Cloudflare)' : 'Orquestación en backend local y almacenamiento seguro' }}</p>
                 </div>
               </div>
               <div class="gemini-info-row">
                 <span>Orquestador Backend:</span>
-                <strong>Spring Boot 4 + Spring AI (Java 25)</strong>
+                <strong>{{ isCloudEnvironment ? 'Render Cloud (Spring Boot + Spring AI / Java 21)' : 'Spring Boot 4 + Spring AI (Java 25 - Local)' }}</strong>
               </div>
               <div class="gemini-info-row">
                 <span>Motor de Embeddings:</span>
-                <strong>ONNX Runtime (384 dim - Inferencia Local)</strong>
+                <strong>{{ isCloudEnvironment ? 'Google Gemini Embeddings (gemini-embedding-001 - Cloud API)' : 'ONNX Runtime (384 dim - Inferencia Local)' }}</strong>
               </div>
               <div class="gemini-info-row">
                 <span>Base de Datos Vectorial:</span>
@@ -183,7 +183,7 @@
               </div>
               <div class="gemini-info-row">
                 <span>Base de Datos Relacional:</span>
-                <strong>Neon PostgreSQL 18 (Persistencia permanente)</strong>
+                <strong>{{ isCloudEnvironment ? 'Neon PostgreSQL (Cloud Serverless)' : 'Neon PostgreSQL 18 (Persistencia permanente)' }}</strong>
               </div>
               <div class="gemini-info-row">
                 <span>Streaming de Tokens:</span>
@@ -828,6 +828,14 @@ export default {
     const showLegalModal = ref(false);
     const showSuccessClearModal = ref(false);
     const selectedModel = ref('gemini-3.1-flash-lite');
+    const isCloudEnvironment = computed(() => {
+      if (typeof window === 'undefined') return false;
+      const host = window.location.hostname;
+      return host.includes('workers.dev') ||
+             host.includes('pages.dev') ||
+             API_BASE_URL.includes('onrender.com') ||
+             (!import.meta.env.DEV && !host.includes('localhost') && !host.includes('127.0.0.1'));
+    });
     const weatherData = ref(null);
     const weatherLocationName = ref('Detectando...');
     const isLocatingWeather = ref(false);
@@ -1738,7 +1746,7 @@ export default {
     return {
       currentUser, showGuestBanner, showLoginModal, showUserMenu, openLoginModal, dismissGuestBanner, logoutUser, goToHome,
       conversations, allConvsList, activeConversationId, currentMessages, inputMessage, isStreaming, streamingContent,
-      chatArea, selectedModel, weatherData, trafficAlerts, suggestedQuestions, isDarkMode,
+      chatArea, selectedModel, isCloudEnvironment, weatherData, trafficAlerts, suggestedQuestions, isDarkMode,
       showDeleteModal, showConfirmClearAllModal, convToDelete, weatherLocationName, isLocatingWeather,
       weatherCondition, fetchWeather, routeEstimates, isLoadingRoutes, fetchRoutesInfo,
       tomtomMapRef, isMapLoaded, initTomTomMap, inputTextarea, isResettingChat,
