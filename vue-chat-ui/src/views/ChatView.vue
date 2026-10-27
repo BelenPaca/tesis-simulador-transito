@@ -522,6 +522,13 @@
           <div v-for="(msg, idx) in currentMessages" :key="idx" class="message-wrapper">
             <div class="message" :class="msg.role">
               <div class="message-bubble">
+                <div v-if="msg.attachedFile" class="message-attached-file">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                  <span>{{ msg.attachedFile.name }}</span>
+                </div>
                 <div v-html="formatMessage(msg.content)"></div>
               </div>
             </div>
@@ -1484,10 +1491,18 @@ export default {
 
       if (!localMessages.value[convId]) localMessages.value[convId] = [];
 
+      const fileToAttach = attachedFile.value && attachedFile.value.status === 'success' ? { ...attachedFile.value } : null;
+
       localMessages.value[convId].push({
         role: 'user',
-        content: text
+        content: text,
+        attachedFile: fileToAttach ? { name: fileToAttach.name } : null
       });
+
+      if (fileToAttach) {
+        attachedFile.value = null;
+      }
+
       inputMessage.value = '';
       if (inputTextarea.value) {
         inputTextarea.value.style.height = 'auto';
@@ -1509,7 +1524,8 @@ export default {
             message: text,
             conversationId: convId,
             model: selectedModel.value,
-            userId: currentUserId.value
+            userId: currentUserId.value,
+            attachedFileName: fileToAttach ? fileToAttach.name : null
           })
         });
 
@@ -1668,11 +1684,6 @@ export default {
             status: 'success',
             message: `${data.chunksCount || 1} fragmentos indexados en Qdrant`
           };
-          setTimeout(() => {
-            if (attachedFile.value && attachedFile.value.status === 'success') {
-              attachedFile.value = null;
-            }
-          }, 8000);
         } else {
           attachedFile.value = {
             name: file.name,

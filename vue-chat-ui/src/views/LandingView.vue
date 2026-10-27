@@ -95,31 +95,14 @@ const startExperience = () => {
   justify-content: center;
 }
 
-.floating-robot-landing {
-  position: absolute;
-  left: -80px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 140px;
-  filter: drop-shadow(0 15px 15px rgba(0,0,0,0.2));
-  animation: float-bot 4s ease-in-out infinite;
-  z-index: 20;
-}
-
-@keyframes float-bot {
-  0% { transform: translateY(0px) rotate(-5deg); }
-  50% { transform: translateY(-15px) rotate(5deg); }
-  100% { transform: translateY(0px) rotate(-5deg); }
-}
-
 .glass-card {
-  background: rgba(255, 255, 255, 0.45);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
   border-radius: 30px;
   padding: 50px 40px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+  box-shadow: 0 20px 45px rgba(0,0,0,0.12);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -149,12 +132,6 @@ const startExperience = () => {
   height: auto;
 }
 
-@keyframes float-car {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-4px); }
-  100% { transform: translateY(0px); }
-}
-
 .brand-text-landing {
   display: flex;
   flex-direction: column;
@@ -163,9 +140,10 @@ const startExperience = () => {
 
 .brand-subtitle-landing {
   font-size: 14px;
-  color: #0db37b;
+  color: #065f46;
   font-weight: 800;
-  letter-spacing: 2px;
+  letter-spacing: 2.5px;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);
 }
 
 .brand-title-landing {
@@ -185,7 +163,7 @@ const startExperience = () => {
 .dot {
   width: 8px;
   height: 8px;
-  background: #0db37b;
+  background: #059669;
   border-radius: 50%;
   display: inline-block;
 }
@@ -200,11 +178,13 @@ const startExperience = () => {
 }
 .welcome-message p {
   font-size: 18px;
-  color: #475569;
+  color: #334155;
   line-height: 1.5;
 }
 .welcome-message strong {
-  color: #0db37b;
+  color: #047857;
+  font-weight: 800;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.9);
 }
 
 .action-container {
