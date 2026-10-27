@@ -144,7 +144,7 @@
               <div class="rag-flow-steps">
                 <div class="rag-step-item">
                   <span class="rag-step-num">1</span>
-                  <div><strong>Consulta del Usuario:</strong> El sistema procesa la consulta y genera un embedding vectorial matemático semántico {{ isCloudEnvironment ? 'mediante Google GenAI Embeddings (en la nube).' : 'mediante ONNX Runtime (inferencia local).' }}</div>
+                  <div><strong>Consulta del Usuario:</strong> El sistema procesa la consulta y genera un embedding vectorial matemático semántico {{ isCloudEnvironment ? 'mediante Google GenAI Embeddings (en la nube).' : 'mediante ONNX Runtime (384 dim).' }}</div>
                 </div>
                 <div class="rag-step-item">
                   <span class="rag-step-num">2</span>
@@ -166,24 +166,24 @@
               <div class="gemini-card-header">
                 <div>
                   <h4>Infraestructura y Persistencia</h4>
-                  <p>{{ isCloudEnvironment ? 'Despliegue de alta disponibilidad en la nube (Render + Cloudflare)' : 'Orquestación en backend local y almacenamiento seguro' }}</p>
+                  <p>{{ isCloudEnvironment ? 'Despliegue de alta disponibilidad en la nube (Render + Cloudflare)' : 'Orquestación en backend y almacenamiento seguro' }}</p>
                 </div>
               </div>
               <div class="gemini-info-row">
                 <span>Orquestador Backend:</span>
-                <strong>{{ isCloudEnvironment ? 'Render Cloud (Spring Boot + Spring AI / Java 21)' : 'Spring Boot 4 + Spring AI (Java 25 - Local)' }}</strong>
+                <strong>{{ isCloudEnvironment ? 'Render Cloud (Spring Boot + Spring AI / Java 21)' : 'Spring Boot 4 + Spring AI (Java 25)' }}</strong>
               </div>
               <div class="gemini-info-row">
                 <span>Motor de Embeddings:</span>
-                <strong>{{ isCloudEnvironment ? 'Google Gemini Embeddings (gemini-embedding-001 - Cloud API)' : 'ONNX Runtime (384 dim - Inferencia Local)' }}</strong>
+                <strong>{{ isCloudEnvironment ? 'Google Gemini Embeddings (gemini-embedding-001 - Cloud API)' : 'ONNX Runtime (384 dim)' }}</strong>
               </div>
               <div class="gemini-info-row">
                 <span>Base de Datos Vectorial:</span>
-                <strong>{{ isCloudEnvironment ? 'Qdrant Cloud Cluster (gRPC TLS)' : 'Qdrant Vector DB (Contenedor Podman - Local)' }}</strong>
+                <strong>{{ isCloudEnvironment ? 'Qdrant Cloud Cluster (gRPC TLS)' : 'Qdrant Vector DB (Contenedor Podman)' }}</strong>
               </div>
               <div class="gemini-info-row">
                 <span>Base de Datos Relacional:</span>
-                <strong>{{ isCloudEnvironment ? 'Neon PostgreSQL (Cloud Serverless)' : 'PostgreSQL (Contenedor Podman - Local)' }}</strong>
+                <strong>{{ isCloudEnvironment ? 'Neon PostgreSQL (Cloud Serverless)' : 'PostgreSQL (Contenedor Podman)' }}</strong>
               </div>
               <div class="gemini-info-row">
                 <span>Streaming de Tokens:</span>
