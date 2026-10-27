@@ -467,7 +467,152 @@ body {
 
 /* INPUT AREA */
 .input-area { padding: 20px 24px; background: var(--bg-panel); border-top: 1px solid var(--border-subtle); }
-.input-container { display: flex; gap: 12px; background: var(--bg-main); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 8px 12px; align-items: center; }
+.input-container { 
+  display: flex; 
+  flex-direction: column;
+  background: var(--bg-main); 
+  border: 1px solid var(--border-subtle); 
+  border-radius: 16px; 
+  padding: 8px 12px; 
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.input-container:focus-within {
+  border-color: rgba(13, 179, 123, 0.45);
+  box-shadow: 0 0 0 3px rgba(13, 179, 123, 0.08);
+}
+.input-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+}
+
+/* ATTACHED FILE CHIP (Estilo Gemini con diseño TransiAI) */
+.attached-file-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: rgba(13, 179, 123, 0.08);
+  border: 1px solid rgba(13, 179, 123, 0.25);
+  border-radius: 12px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
+  animation: slideInChip 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.dark-theme .attached-file-chip {
+  background: rgba(13, 179, 123, 0.12);
+  border-color: rgba(13, 179, 123, 0.35);
+}
+.attached-file-chip.error {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+@keyframes slideInChip {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.file-chip-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+.file-chip-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: rgba(13, 179, 123, 0.15);
+  color: #0db37b;
+  flex-shrink: 0;
+}
+.dark-theme .file-chip-icon {
+  background: rgba(13, 179, 123, 0.22);
+  color: #34d399;
+}
+.attached-file-chip.error .file-chip-icon {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+.file-chip-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.file-chip-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+.file-chip-status-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.file-chip-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+/* Spinner circular minimalista - Cero emojis */
+.file-chip-spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(13, 179, 123, 0.25);
+  border-top-color: #0db37b;
+  border-radius: 50%;
+  animation: spinFileChip 0.75s linear infinite;
+  display: inline-block;
+  box-sizing: border-box;
+}
+@keyframes spinFileChip {
+  to { transform: rotate(360deg); }
+}
+.file-chip-check {
+  font-size: 13px;
+  font-weight: 700;
+  color: #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.file-chip-error {
+  font-size: 12px;
+}
+.file-chip-close {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+.file-chip-close:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--text-primary);
+}
+.dark-theme .file-chip-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
 textarea { flex: 1; border: none; background: transparent; resize: none; font-family: inherit; font-size: 15px; color: var(--text-primary); outline: none; padding: 8px 10px; min-height: 24px; max-height: 180px; line-height: 1.45; overflow-y: auto; box-sizing: border-box; }
 .send-btn { background: var(--accent-green); color: white; border: none; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; font-size: 18px;}
 .send-btn:disabled { background: var(--text-secondary); cursor: not-allowed; }

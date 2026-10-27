@@ -623,48 +623,75 @@
       <!-- Input Area -->
       <div class="input-area">
         <div class="input-container">
-          <input
-              type="file"
-              ref="fileInputRef"
-              style="display: none;"
-              accept=".pdf,.txt,.docx,.doc,.rtf,.csv"
-              @change="handleFileUpload"
-          />
-          <div class="has-custom-tooltip">
-            <button
-                class="upload-btn"
-                @click="$refs.fileInputRef.click()"
-                :disabled="isUploading || isStreaming"
-                aria-label="Adjuntar documento"
-                type="button"
-            >
-              <img v-if="!isUploading" :src="clipIcon" alt="Adjuntar" style="width: 20px; height: 20px; object-fit: contain; display: block;" />
-              <span v-else class="spin-icon">⏳</span>
-            </button>
-            <div class="custom-tooltip-pill tooltip-top align-left">
-              Adjuntar documento
+          <!-- Attached File Chip (Estilo Gemini con diseño TransiAI) -->
+          <transition name="fade">
+            <div v-if="attachedFile" class="attached-file-chip" :class="attachedFile.status">
+              <div class="file-chip-info">
+                <div class="file-chip-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                </div>
+                <div class="file-chip-text">
+                  <span class="file-chip-name" :title="attachedFile.name">{{ attachedFile.name }}</span>
+                  <span class="file-chip-status-label">{{ attachedFile.message }}</span>
+                </div>
+              </div>
+
+              <div class="file-chip-actions">
+                <div v-if="attachedFile.status === 'uploading'" class="file-chip-spinner" title="Indexando en Qdrant..."></div>
+                <span v-else-if="attachedFile.status === 'success'" class="file-chip-check">✓</span>
+                <span v-else-if="attachedFile.status === 'error'" class="file-chip-error">⚠️</span>
+                <button type="button" class="file-chip-close" @click="removeAttachedFile" title="Quitar archivo">✕</button>
+              </div>
+            </div>
+          </transition>
+
+          <div class="input-row">
+            <input
+                type="file"
+                ref="fileInputRef"
+                style="display: none;"
+                accept=".pdf,.txt,.docx,.doc,.rtf,.csv"
+                @change="handleFileUpload"
+            />
+            <div class="has-custom-tooltip">
+              <button
+                  class="upload-btn"
+                  @click="$refs.fileInputRef.click()"
+                  :disabled="isUploading || isStreaming"
+                  aria-label="Adjuntar documento"
+                  type="button"
+              >
+                <img v-if="!isUploading" :src="clipIcon" alt="Adjuntar" style="width: 20px; height: 20px; object-fit: contain; display: block;" />
+                <div v-else class="file-chip-spinner" style="border-top-color: #3b82f6;"></div>
+              </button>
+              <div class="custom-tooltip-pill tooltip-top align-left">
+                Adjuntar documento
+              </div>
+            </div>
+            <textarea
+                ref="inputTextarea"
+                v-model="inputMessage"
+                placeholder="Escribe tu pregunta sobre tránsito o adjunta un documento..."
+                @input="adjustTextareaHeight"
+                @keydown.enter.exact.prevent="sendMessage"
+                :disabled="isStreaming"
+                rows="1"
+            ></textarea>
+            <div class="has-custom-tooltip">
+              <button class="send-btn" @click="sendMessage" :disabled="!inputMessage.trim() || isStreaming" aria-label="Enviar mensaje">
+                ➤
+              </button>
+              <div class="custom-tooltip-pill tooltip-top align-right" v-if="inputMessage.trim() && !isStreaming">
+                Enviar mensaje
+              </div>
             </div>
           </div>
-          <textarea
-              ref="inputTextarea"
-              v-model="inputMessage"
-              placeholder="Escribe tu pregunta sobre tránsito o adjunta un documento..."
-              @input="adjustTextareaHeight"
-              @keydown.enter.exact.prevent="sendMessage"
-              :disabled="isStreaming"
-              rows="1"
-          ></textarea>
-          <div class="has-custom-tooltip">
-            <button class="send-btn" @click="sendMessage" :disabled="!inputMessage.trim() || isStreaming" aria-label="Enviar mensaje">
-              ➤
-            </button>
-            <div class="custom-tooltip-pill tooltip-top align-right" v-if="inputMessage.trim() && !isStreaming">
-              Enviar mensaje
-            </div>
-          </div>
-        </div>
-        <div v-if="uploadStatusMessage" :style="{ fontSize: '12px', marginTop: '6px', textAlign: 'center', color: uploadStatusColor, fontWeight: '600' }">
-          {{ uploadStatusMessage }}
         </div>
         <div class="disclaimer">
           Información generada por IA.
@@ -1603,19 +1630,26 @@ export default {
       return html;
     }
 
-    // File Upload State
+    // File Upload State (Estilo Gemini con diseño TransiAI)
     const fileInputRef = ref(null);
     const isUploading = ref(false);
-    const uploadStatusMessage = ref('');
-    const uploadStatusColor = ref('#10b981');
+    const attachedFile = ref(null);
+
+    function removeAttachedFile() {
+      attachedFile.value = null;
+      if (fileInputRef.value) fileInputRef.value.value = '';
+    }
 
     async function handleFileUpload(event) {
       const file = event.target.files && event.target.files[0];
       if (!file) return;
 
       isUploading.value = true;
-      uploadStatusMessage.value = `⏳ Indexando documento '${file.name}' en la base vectorial (Qdrant)...`;
-      uploadStatusColor.value = '#f59e0b';
+      attachedFile.value = {
+        name: file.name,
+        status: 'uploading',
+        message: 'Indexando en Qdrant...'
+      };
 
       const formData = new FormData();
       formData.append('file', file);
@@ -1629,24 +1663,33 @@ export default {
         const data = await response.json();
 
         if (response.ok && data.status === 'success') {
-          uploadStatusMessage.value = `✅ Documento '${file.name}' indexado exitosamente (${data.chunksCount} fragmentos)`;
-          uploadStatusColor.value = '#10b981';
+          attachedFile.value = {
+            name: file.name,
+            status: 'success',
+            message: `${data.chunksCount || 1} fragmentos indexados en Qdrant`
+          };
+          setTimeout(() => {
+            if (attachedFile.value && attachedFile.value.status === 'success') {
+              attachedFile.value = null;
+            }
+          }, 8000);
         } else {
-          uploadStatusMessage.value = `❌ Error: ${data.message || 'No se pudo procesar el documento.'}`;
-          uploadStatusColor.value = '#ef4444';
+          attachedFile.value = {
+            name: file.name,
+            status: 'error',
+            message: data.message || 'No se pudo procesar el documento'
+          };
         }
       } catch (e) {
         console.error('Error al subir documento:', e);
-        uploadStatusMessage.value = '❌ Error de conexión al servidor al subir el documento.';
-        uploadStatusColor.value = '#ef4444';
+        attachedFile.value = {
+          name: file.name,
+          status: 'error',
+          message: 'Error de conexión con el servidor'
+        };
       } finally {
         isUploading.value = false;
         if (fileInputRef.value) fileInputRef.value.value = '';
-        setTimeout(() => {
-          if (!isUploading.value) {
-            uploadStatusMessage.value = '';
-          }
-        }, 8000);
       }
     }
 
@@ -1750,7 +1793,7 @@ export default {
       showDeleteModal, showConfirmClearAllModal, convToDelete, weatherLocationName, isLocatingWeather,
       weatherCondition, fetchWeather, routeEstimates, isLoadingRoutes, fetchRoutesInfo,
       tomtomMapRef, isMapLoaded, initTomTomMap, inputTextarea, isResettingChat,
-      fileInputRef, isUploading, uploadStatusMessage, uploadStatusColor, handleFileUpload, adjustTextareaHeight,
+      fileInputRef, isUploading, attachedFile, removeAttachedFile, handleFileUpload, adjustTextareaHeight,
       showSettingsMenu, showThemeSubmenu, showActivityModal, showModelModal, showLegalModal, showSuccessClearModal,
       dontShowDeleteNoticeAgain, dismissSuccessClearModal,
       openActivityModal, openModelModal, openLegalModal, clearChatActivity, confirmClearAllHistory,
