@@ -179,11 +179,11 @@
               </div>
               <div class="gemini-info-row">
                 <span>Base de Datos Vectorial:</span>
-                <strong>Qdrant Cloud Cluster (gRPC TLS)</strong>
+                <strong>{{ isCloudEnvironment ? 'Qdrant Cloud Cluster (gRPC TLS)' : 'Qdrant Vector DB (Contenedor Podman - Local)' }}</strong>
               </div>
               <div class="gemini-info-row">
                 <span>Base de Datos Relacional:</span>
-                <strong>{{ isCloudEnvironment ? 'Neon PostgreSQL (Cloud Serverless)' : 'Neon PostgreSQL 18 (Persistencia permanente)' }}</strong>
+                <strong>{{ isCloudEnvironment ? 'Neon PostgreSQL (Cloud Serverless)' : 'PostgreSQL (Contenedor Podman - Local)' }}</strong>
               </div>
               <div class="gemini-info-row">
                 <span>Streaming de Tokens:</span>
