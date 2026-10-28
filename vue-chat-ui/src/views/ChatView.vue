@@ -530,19 +530,6 @@
                   <span>{{ msg.attachedFile.name }}</span>
                 </div>
                 <div v-html="formatMessage(msg.content)"></div>
-                <!-- Citas legales analizadas en respuestas generales (Estilo Gemini TransiAI) -->
-                <div v-if="msg.role === 'assistant' && getGeneralSources(msg.content).length" class="assistant-legal-sources">
-                  <span class="sources-count-label">
-                    📚 {{ getGeneralSources(msg.content).length }} {{ getGeneralSources(msg.content).length === 1 ? 'texto analizado' : 'textos analizados' }}:
-                  </span>
-                  <span v-for="(src, sIdx) in getGeneralSources(msg.content)" :key="sIdx" class="legal-source-chip">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                      <polyline points="14 2 14 8 20 8"></polyline>
-                    </svg>
-                    {{ src }}
-                  </span>
-                </div>
               </div>
             </div>
             
@@ -580,27 +567,9 @@
                     <span class="ig-label">Contexto detectado</span>
                     <span class="ig-value normal" style="font-size: 14px;">{{ getInfractionData(msg.content).contexto }}</span>
                   </div>
-                  <div class="ig-item base-legal-card">
-                    <div class="base-legal-header-row">
-                      <span class="ig-label">Base Legal Principal</span>
-                      <span v-if="getAnalyzedArticles(getInfractionData(msg.content)).length" class="articles-count-pill">
-                        ⚖️ {{ getAnalyzedArticles(getInfractionData(msg.content)).length }} {{ getAnalyzedArticles(getInfractionData(msg.content)).length === 1 ? 'texto analizado' : 'textos analizados' }}
-                      </span>
-                    </div>
+                  <div class="ig-item">
+                    <span class="ig-label">Base Legal Principal</span>
                     <span class="ig-value blue" style="font-size: 14px;">{{ getInfractionData(msg.content).baseLegal }}</span>
-                    <div v-if="getAnalyzedArticles(getInfractionData(msg.content)).length" class="legal-source-chips">
-                      <span 
-                        v-for="(art, aIdx) in getAnalyzedArticles(getInfractionData(msg.content))" 
-                        :key="aIdx" 
-                        class="legal-source-chip"
-                      >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                          <polyline points="14 2 14 8 20 8"></polyline>
-                        </svg>
-                        {{ art }}
-                      </span>
-                    </div>
                   </div>
                 </div>
                 
@@ -1494,32 +1463,6 @@ export default {
         }
       }
       return null;
-    }
-
-    function getAnalyzedArticles(data) {
-      if (!data) return [];
-      if (Array.isArray(data.articulosAnalizados) && data.articulosAnalizados.length > 0) {
-        return data.articulosAnalizados;
-      }
-      if (data.baseLegal && typeof data.baseLegal === 'string') {
-        const parts = data.baseLegal
-          .split(/[,;\n]|\s+y\s+|\s+e\s+/i)
-          .map(p => p.trim())
-          .filter(p => p.length > 2);
-        if (parts.length > 0) return parts;
-        return [data.baseLegal.trim()];
-      }
-      return [];
-    }
-
-    function getGeneralSources(content) {
-      if (!content) return [];
-      if (getInfractionData(content)) return [];
-      const regex = /(?:Art(?:ículo|\.)?\s*\d+(?:\.\w+)?(?:\s*(?:de\s+la|del)\s*(?:LOTTTSV|COIP|Reglamento|Código\s+del\s+Trabajo|Constitución))?|(?:LOTTTSV|COIP|Reglamento\s+General\s+a\s+la\s+LOTTTSV))/gi;
-      const matches = content.match(regex);
-      if (!matches) return [];
-      const unique = [...new Set(matches.map(m => m.trim()))];
-      return unique.slice(0, 4);
     }
 
     function getGravityClass(gravity) {
