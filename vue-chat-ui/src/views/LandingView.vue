@@ -89,20 +89,20 @@ const startExperience = () => {
   position: relative;
   z-index: 10;
   width: 100%;
-  max-width: 600px;
+  max-width: 540px;
   padding: 20px;
   display: flex;
   justify-content: center;
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
-  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: 30px;
-  padding: 50px 40px;
-  box-shadow: 0 20px 45px rgba(0,0,0,0.12);
+  padding: 42px 36px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
   display: flex;
   flex-direction: column;
   align-items: center;
