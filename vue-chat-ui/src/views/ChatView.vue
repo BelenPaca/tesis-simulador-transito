@@ -521,7 +521,7 @@
         <div class="chat-messages" v-if="currentMessages.length > 0 || isStreaming">
           <div v-for="(msg, idx) in currentMessages" :key="idx" class="message-wrapper">
             <div class="message" :class="msg.role">
-              <div class="message-bubble">
+              <div class="message-bubble" :class="{ 'is-editing': editingMessageIdx === idx }">
                 <div v-if="msg.attachedFile" class="message-attached-file">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -529,7 +529,68 @@
                   </svg>
                   <span>{{ msg.attachedFile.name }}</span>
                 </div>
-                <div v-html="formatMessage(msg.content)"></div>
+
+                <!-- Modo Lectura Normal -->
+                <div v-if="editingMessageIdx !== idx" v-html="formatMessage(msg.content, msg.role)"></div>
+
+                <!-- Modo Edición In-Place (en el mismo mensaje del usuario) -->
+                <div v-else class="inplace-edit-wrapper">
+                  <textarea
+                    ref="inplaceTextareaRef"
+                    v-model="editingMessageText"
+                    class="inplace-edit-textarea"
+                    rows="2"
+                    placeholder="Edita tu pregunta..."
+                    @input="adjustInplaceTextareaHeight"
+                    @keydown.enter.exact.prevent="submitUpdatedMessage(idx)"
+                    @keydown.esc="cancelEditingUserMessage"
+                  ></textarea>
+                  <div class="inplace-edit-actions">
+                    <button type="button" class="btn-edit-cancel" @click="cancelEditingUserMessage">
+                      Cancelar
+                    </button>
+                    <button type="button" class="btn-edit-submit" :disabled="!editingMessageText.trim() || isStreaming" @click="submitUpdatedMessage(idx)">
+                      Actualizar
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Resumen de artículos analizados al pie del mensaje -->
+                <div v-if="msg.role === 'assistant' && getAnalyzedCount(msg.content) > 0" class="gemini-sources-bar">
+                  <span class="gemini-sources-count">
+                    {{ getAnalyzedCount(msg.content) }} {{ getAnalyzedCount(msg.content) === 1 ? 'artículo analizado' : 'artículos analizados' }} de la normativa de tránsito
+                  </span>
+                </div>
+              </div>
+
+              <!-- Botones de Acción (Copiar / Editar) estilo Gemini (se ocultan si este mensaje está en edición) -->
+              <div v-if="editingMessageIdx !== idx" class="message-actions-toolbar" :class="msg.role">
+                <div class="msg-action-btn-wrapper" :class="{ 'is-active-tooltip': copiedMessageIdx === idx }">
+                  <button class="msg-action-btn" @click="copyMessageText(msg.content, idx)" :title="msg.role === 'user' ? 'Copy prompt' : 'Copiar respuesta'" :aria-label="copiedMessageIdx === idx ? 'Copiado' : (msg.role === 'user' ? 'Copy prompt' : 'Copiar respuesta')">
+                    <svg v-if="copiedMessageIdx !== idx" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="8" y="8" width="12" height="12" rx="2.5"></rect>
+                      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>
+                    </svg>
+                    <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </button>
+                  <div class="msg-action-tooltip">
+                    {{ copiedMessageIdx === idx ? 'Copiado' : (msg.role === 'user' ? 'Copy prompt' : 'Copiar respuesta') }}
+                  </div>
+                </div>
+
+                <div v-if="msg.role === 'user'" class="msg-action-btn-wrapper">
+                  <button class="msg-action-btn" @click="startEditingUserMessage(msg, idx)" title="Editar prompt" aria-label="Editar prompt">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
+                      <path d="m15 5 4 4"></path>
+                    </svg>
+                  </button>
+                  <div class="msg-action-tooltip">
+                    Editar prompt
+                  </div>
+                </div>
               </div>
             </div>
             
@@ -598,16 +659,18 @@
           </div>
           
           <!-- Streaming Message with Typewriter Cursor -->
-          <div v-if="isStreaming" class="message assistant">
-             <div class="message-bubble">
-               <span v-html="formatMessage(streamingContent)"></span>
-               <span class="streaming-cursor" v-if="isStreaming"></span>
-               <div class="typing-indicator" v-if="!streamingContent">
-                 <span class="dot"></span>
-                 <span class="dot"></span>
-                 <span class="dot"></span>
+          <div v-if="isStreaming" class="message-wrapper">
+            <div class="message assistant">
+               <div class="message-bubble">
+                 <span v-html="formatMessage(streamingContent, 'assistant')"></span>
+                 <span class="streaming-cursor" v-if="isStreaming"></span>
+                 <div class="typing-indicator" v-if="!streamingContent">
+                   <span class="dot"></span>
+                   <span class="dot"></span>
+                   <span class="dot"></span>
+                 </div>
                </div>
-             </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1465,6 +1528,111 @@ export default {
       return null;
     }
 
+    function getMessageLegalSources(content) {
+      if (!content || typeof content !== 'string') return [];
+
+      // 1. Prioridad Absoluta: Fuentes reales recuperadas por Qdrant enviadas por el backend
+      const sourcesMatch = content.match(/\[LEGAL_SOURCES\]([\s\S]*?)\[\/LEGAL_SOURCES\]/i);
+      if (sourcesMatch && sourcesMatch[1]) {
+        try {
+          const parsed = JSON.parse(sourcesMatch[1].trim());
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        } catch (e) {
+          console.warn("Error parsing real legal sources:", e);
+        }
+      }
+
+      // 2. Respaldo pasivo por mención explícita del cuerpo legal (cero rangos numéricos inventados)
+      const cleanText = content
+        .replace(/\[INFRACTION_DATA\][\s\S]*?\[\/INFRACTION_DATA\]/gi, '')
+        .replace(/\[LEGAL_SOURCES\][\s\S]*?\[\/LEGAL_SOURCES\]/gi, '');
+      const lower = cleanText.toLowerCase();
+
+      const sourcesFound = [];
+      const seenKeys = new Set();
+
+      if (lower.includes('código del trabajo') || lower.includes('codigo del trabajo') || lower.includes('laboral')) {
+        if (!seenKeys.has('trabajo')) {
+          seenKeys.add('trabajo');
+          sourcesFound.push({
+            id: 'trabajo',
+            badge: 'Código del Trabajo',
+            title: 'Código del Trabajo del Ecuador',
+            article: 'Código del Trabajo',
+            extract: 'Disposiciones normativas sobre responsabilidades laborales, avisos al Inspector del Trabajo e indemnizaciones.'
+          });
+        }
+      }
+
+      if (lower.includes('reglamento') || lower.includes('lotttsv') || lower.includes('tránsito y seguridad vial')) {
+        const isReglamento = lower.includes('reglamento');
+        const key = isReglamento ? 'reglamento' : 'lotttsv';
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key);
+          sourcesFound.push({
+            id: key,
+            badge: isReglamento ? 'Reglamento LOTTTSV' : 'LOTTTSV',
+            title: isReglamento ? 'Reglamento General para la Aplicación de la LOTTTSV' : 'Ley Orgánica de Transporte Terrestre, Tránsito y Seguridad Vial',
+            article: isReglamento ? 'Reglamento LOTTTSV' : 'LOTTTSV',
+            extract: 'Normativa oficial ecuatoriana que rige el transporte terrestre, tránsito y procedimientos de seguridad vial.'
+          });
+        }
+      }
+
+      if (lower.includes('coip') || lower.includes('código orgánico integral penal') || lower.includes('penal')) {
+        if (!seenKeys.has('coip')) {
+          seenKeys.add('coip');
+          sourcesFound.push({
+            id: 'coip',
+            badge: 'COIP Tránsito',
+            title: 'Código Orgánico Integral Penal (COIP)',
+            article: 'COIP Tránsito',
+            extract: 'Tipifica las contravenciones y delitos de tránsito, sanciones, multas y penas aplicables en Ecuador.'
+          });
+        }
+      }
+
+      if (lower.includes('constitución') || lower.includes('constitucion')) {
+        if (!seenKeys.has('constitucion')) {
+          seenKeys.add('constitucion');
+          sourcesFound.push({
+            id: 'constitucion',
+            badge: 'Constitución',
+            title: 'Constitución de la República del Ecuador',
+            article: 'Constitución',
+            extract: 'Norma suprema que ampara los derechos constitucionales, el debido proceso y la libre movilidad.'
+          });
+        }
+      }
+
+      return sourcesFound;
+    }
+
+
+    function getAnalyzedCount(content) {
+      if (!content || typeof content !== 'string') return 0;
+      const cleanText = content
+        .replace(/\[INFRACTION_DATA\][\s\S]*?\[\/INFRACTION_DATA\]/gi, '')
+        .replace(/\[LEGAL_SOURCES\][\s\S]*?\[\/LEGAL_SOURCES\]/gi, '');
+
+      const articleRegex = /(?:Arts?\.?|Art[ií]culos?)\s*(\d+(?:\s*(?:y|,|al|-)\s*\d+)*)/gi;
+      let match;
+      const uniqueNumbers = new Set();
+      while ((match = articleRegex.exec(cleanText)) !== null) {
+        const nums = match[1].split(/[\s,y\-\/al]+/).map(n => parseInt(n.trim(), 10)).filter(n => !isNaN(n));
+        nums.forEach(n => uniqueNumbers.add(n));
+      }
+
+      if (uniqueNumbers.size > 0) {
+        return uniqueNumbers.size;
+      }
+
+      const qdrantSources = getMessageLegalSources(content);
+      return qdrantSources ? qdrantSources.length : 0;
+    }
+
     function getGravityClass(gravity) {
       if (!gravity) return 'color-green';
       const g = gravity.toUpperCase();
@@ -1482,36 +1650,21 @@ export default {
     }
 
     // ─── CHAT LOGIC ──────────────────────────────────────────────────────────
-    async function sendMessage() {
-      const text = inputMessage.value.trim();
-      if (!text || isStreaming.value) return;
-
-      if (!activeConversationId.value) newConversation();
-      const convId = activeConversationId.value;
-
-      if (!localMessages.value[convId]) localMessages.value[convId] = [];
-
-      const fileToAttach = attachedFile.value && attachedFile.value.status === 'success' ? { ...attachedFile.value } : null;
-
-      localMessages.value[convId].push({
-        role: 'user',
-        content: text,
-        attachedFile: fileToAttach ? { name: fileToAttach.name } : null
-      });
-
-      if (fileToAttach) {
-        attachedFile.value = null;
+    function scrollToLatestPrompt() {
+      if (!chatArea.value) return;
+      const userMessages = chatArea.value.querySelectorAll('.message.user');
+      const targetMsg = userMessages[userMessages.length - 1];
+      if (targetMsg) {
+        targetMsg.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
+    }
 
-      inputMessage.value = '';
-      if (inputTextarea.value) {
-        inputTextarea.value.style.height = 'auto';
-      }
+    async function executeChatStream(text, convId, fileToAttach) {
       isStreaming.value = true;
       streamingContent.value = '';
 
       await nextTick();
-      scrollToBottom();
+      scrollToLatestPrompt();
 
       try {
         const response = await fetch(`${API_BASE_URL}/api/chat`, {
@@ -1548,7 +1701,6 @@ export default {
             const chars = tokenQueue.splice(0, step).join('');
             streamingContent.value += chars;
             await nextTick();
-            scrollToBottom();
             const delay = tokenQueue.length > 40 ? 1 : 5;
             await new Promise(r => setTimeout(r, delay));
           }
@@ -1622,8 +1774,37 @@ export default {
         isStreaming.value = false;
         await loadConversations(); // Reload history after replying
         await nextTick();
-        scrollToBottom();
+        scrollToLatestPrompt();
       }
+    }
+
+    async function sendMessage() {
+      const text = inputMessage.value.trim();
+      if (!text || isStreaming.value) return;
+
+      if (!activeConversationId.value) newConversation();
+      const convId = activeConversationId.value;
+
+      if (!localMessages.value[convId]) localMessages.value[convId] = [];
+
+      const fileToAttach = attachedFile.value && attachedFile.value.status === 'success' ? { ...attachedFile.value } : null;
+
+      localMessages.value[convId].push({
+        role: 'user',
+        content: text,
+        attachedFile: fileToAttach ? { name: fileToAttach.name } : null
+      });
+
+      if (fileToAttach) {
+        attachedFile.value = null;
+      }
+
+      inputMessage.value = '';
+      if (inputTextarea.value) {
+        inputTextarea.value.style.height = 'auto';
+      }
+
+      await executeChatStream(text, convId, fileToAttach);
     }
 
     function sendSuggestion(text) {
@@ -1635,23 +1816,257 @@ export default {
       if (chatArea.value) chatArea.value.scrollTop = chatArea.value.scrollHeight;
     }
 
-    function formatMessage(content) {
+    const copiedMessageIdx = ref(null);
+
+    async function copyMessageText(content, idx) {
+      if (!content) return;
+      const clean = content
+        .replace(/\[INFRACTION_DATA\][\s\S]*?(?:\[\/INFRACTION_DATA\]|$)/gi, '')
+        .replace(/\[LEGAL_SOURCES\][\s\S]*?(?:\[\/LEGAL_SOURCES\]|$)/gi, '')
+        .trim();
+      let copied = false;
+      if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(clean);
+          copied = true;
+        } catch (e) {
+          // Fallback a execCommand
+        }
+      }
+      if (!copied && typeof document !== 'undefined') {
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = clean;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          copied = true;
+        } catch (err) {
+          console.warn('Fallback copy error:', err);
+        }
+      }
+
+      copiedMessageIdx.value = idx;
+      setTimeout(() => {
+        if (copiedMessageIdx.value === idx) {
+          copiedMessageIdx.value = null;
+        }
+      }, 2000);
+    }
+
+    // Edición In-Place (directamente en el mensaje estilo Gemini)
+    const editingMessageIdx = ref(null);
+    const editingMessageText = ref('');
+    const inplaceTextareaRef = ref(null);
+
+    function startEditingUserMessage(msg, idx) {
+      editingMessageIdx.value = idx;
+      editingMessageText.value = msg.content;
+      nextTick(() => {
+        if (inplaceTextareaRef.value) {
+          inplaceTextareaRef.value.focus();
+          adjustInplaceTextareaHeight();
+        }
+      });
+    }
+
+    function cancelEditingUserMessage() {
+      editingMessageIdx.value = null;
+      editingMessageText.value = '';
+    }
+
+    function adjustInplaceTextareaHeight() {
+      if (!inplaceTextareaRef.value) return;
+      inplaceTextareaRef.value.style.height = 'auto';
+      inplaceTextareaRef.value.style.height = `${Math.min(inplaceTextareaRef.value.scrollHeight, 240)}px`;
+    }
+
+    async function submitUpdatedMessage(idx) {
+      const newText = editingMessageText.value.trim();
+      if (!newText || isStreaming.value) return;
+
+      const convId = activeConversationId.value;
+      if (!convId || !localMessages.value[convId]) return;
+
+      // Actualizar el mensaje del usuario
+      localMessages.value[convId][idx].content = newText;
+
+      // Descartar mensajes posteriores para regenerar a partir del nuevo prompt
+      localMessages.value[convId] = localMessages.value[convId].slice(0, idx + 1);
+
+      cancelEditingUserMessage();
+
+      // Disparar la respuesta con el prompt actualizado
+      await executeChatStream(newText, convId, null);
+    }
+
+    function editUserMessage(text) {
+      if (!text) return;
+      inputMessage.value = text;
+      nextTick(() => {
+        if (inputTextarea.value) {
+          inputTextarea.value.focus();
+          adjustTextareaHeight();
+        }
+      });
+    }
+
+    function formatMessage(content, role = 'assistant') {
       if (!content) return '';
-      // Ocultar el bloque JSON del sistema
-      let text = content.replace(/\[INFRACTION_DATA\][\s\S]*?\[\/INFRACTION_DATA\]/gi, '').trim();
-      
-      let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      html = html.replace(/\n/g, '<br>');
-      return html;
+
+      // Si el mensaje es del usuario, renderizarlo limpio sin pastillas ni citas legales
+      if (role === 'user') {
+        let clean = content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return clean.replace(/\n/g, '<br>');
+      }
+
+      const qdrantSources = getMessageLegalSources(content);
+      // Ocultar los bloques de metadatos del sistema (incluso si están a medio transmitir) y normalizar fórmulas
+      let text = content
+        .replace(/\[INFRACTION_DATA\][\s\S]*?(?:\[\/INFRACTION_DATA\]|$)/gi, '')
+        .replace(/\[LEGAL_SOURCES\][\s\S]*?(?:\[\/LEGAL_SOURCES\]|$)/gi, '')
+        .replace(/\\times/g, '×')
+        .replace(/\\text\{([^}]*)\}/g, '$1')
+        .replace(/\\\$/g, '$')
+        .trim();
+
+      const paragraphs = text.split(/\n\n+/);
+
+      // Paso 1: Analizar qué fuente real de Qdrant le corresponde a cada párrafo
+      const paragraphSources = paragraphs.map(p => {
+        let trimmed = p.trim();
+        if (!trimmed || trimmed.includes('Nota: Esta información es generada') || trimmed.startsWith('⚠️')) {
+          return null;
+        }
+
+        const pLower = trimmed.toLowerCase();
+        let matchedBadge = '';
+        let matchedTitle = '';
+        let matchedExtract = '';
+
+        // Si Qdrant devolvió fuentes vectoriales reales
+        if (qdrantSources && qdrantSources.length > 0) {
+          // Si solo hay una única fuente recuperada en toda la consulta, asignarla directamente al bloque analítico
+          if (qdrantSources.length === 1) {
+            matchedBadge = qdrantSources[0].badge;
+            matchedTitle = qdrantSources[0].title;
+            matchedExtract = qdrantSources[0].extract;
+          } else {
+            // Si hay múltiples fuentes de Qdrant, asociar el párrafo con la fuente correspondiente
+            for (const s of qdrantSources) {
+              const bLower = (s.badge || '').toLowerCase();
+              const isMatch = (s.article && trimmed.includes(s.article)) ||
+                              (bLower && pLower.includes(bLower)) ||
+                              (bLower.includes('trabajo') && (pLower.includes('código del trabajo') || pLower.includes('codigo del trabajo') || pLower.includes('laboral'))) ||
+                              (bLower.includes('reglamento') && pLower.includes('reglamento')) ||
+                              (bLower.includes('coip') && (pLower.includes('coip') || pLower.includes('penal'))) ||
+                              (bLower.includes('lotttsv') && pLower.includes('lotttsv'));
+              if (isMatch) {
+                matchedBadge = s.badge;
+                matchedTitle = s.title;
+                matchedExtract = s.extract;
+                break;
+              }
+            }
+          }
+        } else {
+          // Respaldo pasivo si no hay metadatos: únicamente por mención explícita en el párrafo
+          if (pLower.includes('código del trabajo') || pLower.includes('codigo del trabajo') || pLower.includes('laboral')) {
+            matchedBadge = 'Código del Trabajo';
+            matchedTitle = 'Código del Trabajo del Ecuador';
+            matchedExtract = 'Disposiciones normativas sobre responsabilidades laborales, avisos al Inspector del Trabajo e indemnizaciones.';
+          } else if (pLower.includes('reglamento')) {
+            matchedBadge = 'Reglamento LOTTTSV';
+            matchedTitle = 'Reglamento General para la Aplicación de la LOTTTSV';
+            matchedExtract = 'Normativa reglamentaria sobre procedimientos técnicos, deberes ante siniestros viales y peritajes de tránsito.';
+          } else if (pLower.includes('coip') || pLower.includes('penal')) {
+            matchedBadge = 'COIP Tránsito';
+            matchedTitle = 'Código Orgánico Integral Penal (COIP)';
+            matchedExtract = 'Tipifica las contravenciones y delitos de tránsito, sanciones, multas y reducción de puntos.';
+          } else if (pLower.includes('lotttsv')) {
+            matchedBadge = 'LOTTTSV';
+            matchedTitle = 'Ley Orgánica de Transporte Terrestre, Tránsito y Seguridad Vial';
+            matchedExtract = 'Marco legal rector de transporte terrestre y seguridad vial, títulos habilitantes y control en Ecuador.';
+          } else if (pLower.includes('constitución') || pLower.includes('constitucion')) {
+            matchedBadge = 'Constitución';
+            matchedTitle = 'Constitución de la República del Ecuador';
+            matchedExtract = 'Norma suprema que ampara los derechos constitucionales, el debido proceso y la libre movilidad.';
+          }
+        }
+
+        return matchedBadge ? { badge: matchedBadge, title: matchedTitle, extract: matchedExtract } : null;
+      });
+
+      // Garantía: Si Qdrant entregó fuentes pero ningún párrafo coincidió por nombre literal,
+      // asignar la fuente principal al último párrafo analítico para que siempre haya pastilla de respaldo
+      if (qdrantSources && qdrantSources.length > 0) {
+        const hasAnyBadge = paragraphSources.some(src => src && src.badge);
+        if (!hasAnyBadge) {
+          for (let i = paragraphSources.length - 1; i >= 0; i--) {
+            const pTrim = (paragraphs[i] || '').trim();
+            if (pTrim && !pTrim.includes('Nota: Esta información es generada') && !pTrim.startsWith('⚠️')) {
+              paragraphSources[i] = {
+                badge: qdrantSources[0].badge,
+                title: qdrantSources[0].title,
+                extract: qdrantSources[0].extract
+              };
+              break;
+            }
+          }
+        }
+      }
+
+      // Paso 2: Regla de Unicidad Absoluta (solo colocar la pastilla una sola vez por documento, al final de su bloque)
+      const lastIndexByBadge = new Map();
+      paragraphSources.forEach((src, idx) => {
+        if (src && src.badge) {
+          lastIndexByBadge.set(src.badge, idx);
+        }
+      });
+
+      // Paso 3: Renderizar texto con HTML y la pastilla única sin repeticiones
+      const formattedParagraphs = paragraphs.map((p, idx) => {
+        let trimmed = p.trim();
+        if (!trimmed) return '';
+
+        let h = trimmed.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        h = h.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        h = h.replace(/\n/g, '<br>');
+
+        const src = paragraphSources[idx];
+        if (src && src.badge && lastIndexByBadge.get(src.badge) === idx) {
+          const safeExtract = (src.extract || '').replace(/"/g, '&quot;');
+          h += ` <span class="gemini-inline-cite-wrapper">` +
+               `<span class="gemini-inline-cite">${src.badge}</span>` +
+               `<span class="gemini-tooltip-popover">` +
+               `<span class="tooltip-header"><span class="tooltip-title">${src.title}</span></span>` +
+               `<span class="tooltip-article-badge">Texto complementario de Qdrant</span>` +
+               `<span class="tooltip-extract">&quot;${safeExtract}&quot;</span>` +
+               `</span></span>`;
+        }
+        return h;
+      });
+
+      return formattedParagraphs.join('<br><br>');
     }
 
     // File Upload State (Estilo Gemini con diseño TransiAI)
     const fileInputRef = ref(null);
     const isUploading = ref(false);
     const attachedFile = ref(null);
+    let uploadAbortController = null;
 
     function removeAttachedFile() {
+      if (uploadAbortController) {
+        try { uploadAbortController.abort(); } catch (e) {}
+        uploadAbortController = null;
+      }
+      isUploading.value = false;
       attachedFile.value = null;
       if (fileInputRef.value) fileInputRef.value.value = '';
     }
@@ -1659,6 +2074,11 @@ export default {
     async function handleFileUpload(event) {
       const file = event.target.files && event.target.files[0];
       if (!file) return;
+
+      if (uploadAbortController) {
+        try { uploadAbortController.abort(); } catch (e) {}
+      }
+      uploadAbortController = new AbortController();
 
       isUploading.value = true;
       attachedFile.value = {
@@ -1673,7 +2093,8 @@ export default {
       try {
         const response = await fetch(`${API_BASE_URL}/api/documents/upload`, {
           method: 'POST',
-          body: formData
+          body: formData,
+          signal: uploadAbortController.signal
         });
 
         const data = await response.json();
@@ -1692,6 +2113,9 @@ export default {
           };
         }
       } catch (e) {
+        if (e.name === 'AbortError') {
+          return;
+        }
         console.error('Error al subir documento:', e);
         attachedFile.value = {
           name: file.name,
@@ -1700,6 +2124,7 @@ export default {
         };
       } finally {
         isUploading.value = false;
+        uploadAbortController = null;
         if (fileInputRef.value) fileInputRef.value.value = '';
       }
     }
@@ -1811,7 +2236,10 @@ export default {
       isMobileSidebarOpen, isMobileWidgetsOpen, closeMobileDrawers,
       hoveredConvTitle, hoveredTooltipTop, onConvMouseEnter, onConvMouseLeave,
       newConversation, selectConversation, deleteSidebarConversation, deleteActivityConversation, confirmDelete, sendMessage, sendSuggestion, 
-      getInfractionData, getGravityClass, getNeedleAngle, formatMessage, toggleTheme, carrosLogo, clipIcon
+      getInfractionData, getGravityClass, getNeedleAngle, formatMessage, getMessageLegalSources, getAnalyzedCount, toggleTheme,
+      copiedMessageIdx, copyMessageText, editUserMessage,
+      editingMessageIdx, editingMessageText, inplaceTextareaRef, startEditingUserMessage, cancelEditingUserMessage, adjustInplaceTextareaHeight, submitUpdatedMessage,
+      carrosLogo, clipIcon
     };
   }
 };
