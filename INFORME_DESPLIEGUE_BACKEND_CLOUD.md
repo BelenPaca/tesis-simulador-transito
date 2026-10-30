@@ -86,19 +86,48 @@ flowchart TD
 
 ---
 
-### F. Apache Camel & Ingesta de Archivos
-* **Función:** Pipeline de procesamiento de documentos PDF adjuntos por los usuarios.
-* **Mejora Aplicada:** Incorporación de la anotación `@Handler` en `FileProcessor.java` para resolver ambigüedades en la invocación de métodos y garantizar la indexación fluida de documentos subidos hacia Qdrant.
+### F. Apache Camel & Ingesta de Archivos: Modo Local vs. Modo Nube (GitOps)
+* **Arquitectura Bimodal de Ingesta:**
+  1. **Modo Local (Desarrollo y Testing Offline):**
+     * Opera mediante el router de **Apache Camel** (`FileReaderRouter.java`) que escucha activamente la carpeta física `./spring-rag/inbound/`.
+     * Al colocar un archivo PDF en dicha carpeta, Camel lo detecta automáticamente, invoca el pipeline de `@Handler` en `FileProcessor.java`, lo divide en fragmentos mediante `TransformerProcessor`, genera embeddings y lo traslada a la carpeta `./procesados/`.
+  2. **Modo Nube (Producción Serverless & GitOps en Render):**
+     * En entornos cloud como Render, los contenedores son efímeros (*stateless*), por lo que no existen carpetas físicas compartidas de archivos entre sesiones.
+     * La ingesta de archivos del usuario en la nube se ejecuta a través del endpoint REST seguro `POST /api/documents/upload` (con soporte para encabezado `X-User-Id`), procesando el flujo directamente en memoria/archivos temporales y registrando los vectores en **Qdrant Cloud** con etiquetado estricto `tipo: "usuario_adjunto"`.
+     * **Sincronización Oficial de Leyes (GitOps):** La carga del marco legal oficial se gestiona mediante el pipeline de sincronización (`sincronizar_leyes.py`), el cual calcula hashes SHA-256 en la tabla `registro_leyes` de Neon PostgreSQL, indexando en Qdrant únicamente los documentos modificados bajo la etiqueta inmutable `tipo: "ley_oficial"`.
 
 ---
 
-### G. Cron-Job.org (Zero Cold-Start Keep-Alive)
+### G. Despliegue Continuo GitOps en Render
+* **Automatización CI/CD:** El servicio en Render está vinculado de forma nativa a la rama `main` del repositorio GitHub `BelenPaca/tesis-simulador-transito-backend`.
+* **Disparador Automático:** Cada `git push origin main` genera un evento de webhook que compila la imagen Docker multi-stage y levanta el nuevo contenedor sin tiempo de inactividad (*Zero-Downtime Rolling Update*).
+* **Control de Versiones y Auditoría:** Permite que cualquier corrección de arquitectura aprobada en el plan se refleje automáticamente en la nube manteniendo trazabilidad de commits.
+
+---
+
+### H. Cron-Job.org (Zero Cold-Start Keep-Alive)
 * **Función:** Monitor automatizado que emite un ping `GET /actuator/health` cada 10 minutos (24/7).
 * **Beneficio:** Evita que Render suspenda el contenedor por inactividad (después de 15 minutos), eliminando por completo la espera de 50 segundos de arranque en frío para el usuario final.
 
 ---
 
-## 3. Matriz de Variables de Entorno en Producción (Render)
+## 3. Mejoras de Arquitectura Implementadas (Fase de Estabilización)
+
+Durante esta fase se implementaron cuatro optimizaciones críticas para garantizar cero alucinaciones y alta precisión jurídica:
+
+1. **Memoria Conversacional y Continuidad Multi-Turno (`systemPrompt.st`):**
+   - Se reestructuró la jerarquía de instrucciones del prompt para eliminar la contradicción entre la cláusula de "ÚNICAMENTE la NORMATIVA" y el historial.
+   - Ante preguntas de seguimiento (*"¿qué dice el punto 1?"*, *"¿qué significa el numeral 2?"*), el modelo prioriza de forma directa el **HISTORIAL DE LA CONVERSACIÓN** de PostgreSQL, manteniendo la coherencia sin desorientarse ni alucinar con artículos aleatorios de Qdrant.
+2. **Análisis Completo de Documentos Adjuntos (`topK = 10`):**
+   - Se incrementó de 4 a 10 el número de fragmentos recuperados para documentos adjuntados por el usuario en `ChatController.java`, resolviendo el problema donde la IA solo analizaba una fracción superficial del documento subido.
+3. **Aislamiento Hermético por Usuario (`userId`):**
+   - En `FileProcessor.java` y `DocumentUploadController.java`, los fragmentos de documentos adjuntos ahora incorporan el metadato `userId`, blindando la privacidad para que ningún documento de un usuario sea accesible por otros.
+4. **Respaldo Estructurado de Citas Legales (`[LEGAL_SOURCES]`):**
+   - El backend serializa las leyes oficiales consultadas en un bloque JSON al pie de la respuesta, con deduplicación por cuerpo legal (`seenBadges`), eliminando la necesidad de adivinanzas o código quemado en el cliente web.
+
+---
+
+## 4. Matriz de Variables de Entorno en Producción (Render)
 
 | Variable | Propósito | Configuración / Valor |
 |---|---|---|

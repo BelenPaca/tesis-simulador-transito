@@ -67,7 +67,7 @@ flowchart TD
      ```
      Esto garantiza que al refrescar la página (`F5`) o acceder directamente a rutas internas como `/chat` o `/`, Cloudflare redirige limpiamente hacia `index.html` para que Vue Router procese la vista sin generar el error `404 Not Found`.
   3. **Seguridad Perimetral y Cifrado:** Certificados SSL/TLS 1.3 automáticos, soporte nativo de HTTP/2 y HTTP/3, compresión Brotli y mitigación automática de ataques de denegación de servicio (DDoS).
-  4. **Despliegue Continuo (CI/CD Automático):** Conectado directamente al repositorio de GitHub `BelenPaca/tesis-simulador-transito-front`. Cada `git push` a la rama `main` dispara automáticamente la compilación y actualización de la plataforma en la nube.
+  4. **Despliegue Continuo GitOps (CI/CD Automático):** Conectado directamente al repositorio de GitHub `BelenPaca/tesis-simulador-transito-front`. Cada `git push origin main` desencadena un webhook que ejecuta la compilación de Vite en el Edge de Cloudflare y propaga los nuevos activos estáticos de forma instantánea a más de 300 puntos de presencia mundiales en menos de 60 segundos.
 
 ---
 
@@ -91,12 +91,13 @@ flowchart TD
 
 | Componente | Funcionalidad Implementada | Beneficio de Usuario |
 |---|---|---|
-| **Edición In-Place en el Mensaje** | Al pulsar el ícono de lápiz en la pregunta del usuario, la burbuja se transforma en un área de edición ahí mismo con botones **Cancelar** y **Actualizar**. | No se envía el texto al input inferior; permite corregir la consulta en el mismo globo y re-ejecutar la respuesta sin recargar la página. |
+| **Edición In-Place Ancha (Estilo Gemini)** | Al pulsar el ícono de lápiz en la pregunta del usuario, el cuadro se expande al **100% del ancho del chat** con controles **Cancelar** y **Actualizar**. | Máxima comodidad de lectura y edición de preguntas largas, sin deformar la interfaz ni comprimir el texto a la derecha. |
+| **Pastillas Dinámicas Exactas desde Qdrant** | Las pastillas se alimentan directamente de las fuentes oficiales recuperadas por Qdrant en el bloque `[LEGAL_SOURCES]`, eliminando el falso positivo donde la palabra "reglamentos" asignaba erróneamente *Reglamento LOTTTSV* a artículos del *Código del Trabajo*. | Cero adivinanzas por keywords. Cada ley oficial (Código del Trabajo, COIP, LOTTTSV, etc.) recibe su pastilla correspondiente una única vez al final de su bloque. |
+| **Pie de Página Limpio y Sobrio** | Contador en texto plano: *"X artículos analizados del marco legal consultado"*, suprimiendo listas repetitivas al pie y eliminando emojis redundantes (`⚖️`). | Interfaz limpia, profesional y libre de duplicaciones visuales. |
 | **Control de Carga de Archivos (`✕`)** | Integración de `AbortController` al presionar la 'X' en documentos adjuntos. | Se cancela la subida de inmediato y se limpia el estado sin que la animación se quede en bucle de "cargando". |
 | **Copiado Inteligente** | Botón de copia con limpieza de expresiones regulares internas (`[LEGAL_SOURCES]`, `[INFRACTION_DATA]`) y confirmación `"Copiado"`. | Permite al usuario copiar el texto puro y limpio al portapapeles con confirmación visual adaptada a móviles. |
 | **Lectura Anclada Arriba (Estilo Gemini)** | Control de scroll suave mediante anclaje (`scrollIntoView`) en el inicio del mensaje. | Por más extensa que sea la respuesta legal o el cálculo de indemnización, la pantalla no arrastra al usuario al fondo, permitiendo leer desde el primer renglón. |
-| **Pastillas Dinámicas de Normativa** | Renderizado de etiquetas de ley (LOTTTSV, COIP, Código del Trabajo, Reglamentos) extraídas de Qdrant Cloud con popovers informativos y regla de unicidad. | El usuario conoce con exactitud el respaldo normativo oficial de cada párrafo sin información duplicada o quemada. |
-| **Adaptabilidad Móvil 100% (Responsive)** | Ajuste de cajas de texto, tooltips flotantes negros con márgenes protegidos (`right: 0` y `left: 0`) y áreas táctiles de 32px. | Navegación fluida en teléfonos celulares de cualquier resolución sin desbordamientos laterales ni barras de desplazamiento horizontal. |
+| **Adaptabilidad Móvil 100% (Responsive)** | Ajuste de cajas de texto, tooltips flotantes oscuros con márgenes protegidos (`right: 0` y `left: 0`) y áreas táctiles de 32px. | Navegación fluida en teléfonos celulares de cualquier resolución sin desbordamientos laterales ni barras de desplazamiento horizontal. |
 
 ---
 
