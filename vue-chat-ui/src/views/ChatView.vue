@@ -662,7 +662,7 @@
           <div v-if="isStreaming" class="message-wrapper">
             <div class="message assistant">
                <div class="message-bubble">
-                 <span v-html="formatMessage(streamingContent, 'assistant')"></span>
+                 <span v-html="formatMessage(streamingContent, 'assistant', true)"></span>
                  <span class="streaming-cursor" v-if="isStreaming"></span>
                  <div class="typing-indicator" v-if="!streamingContent">
                    <span class="dot"></span>
@@ -1916,7 +1916,7 @@ export default {
       });
     }
 
-    function formatMessage(content, role = 'assistant') {
+    function formatMessage(content, role = 'assistant', isLiveStreaming = false) {
       if (!content) return '';
 
       // Si el mensaje es del usuario, renderizarlo limpio sin pastillas ni citas legales
@@ -2042,7 +2042,7 @@ export default {
         h = h.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         h = h.replace(/\n/g, '<br>');
 
-        const pills = pillsByParagraph.get(idx);
+        const pills = isLiveStreaming ? null : pillsByParagraph.get(idx);
         if (pills && pills.length > 0) {
           h += pills.join('');
         }
