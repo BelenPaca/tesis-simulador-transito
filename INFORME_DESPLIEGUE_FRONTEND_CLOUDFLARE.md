@@ -1,151 +1,132 @@
-# INFORME TÉCNICO: DESPLIEGUE DEL FRONTEND EN CLOUDFLARE Y CONEXIÓN FULL-STACK
-## Proyecto de Titulación: Simulador de Tránsito con Asistente RAG Inteligente
+# INFORME TÉCNICO DE ARQUITECTURA Y DESPLIEGUE FRONTEND EN CLOUDFLARE
+## Proyecto de Titulación: Simulador de Tránsito con Asistente RAG Inteligente (TransiAI)
 **Servicio Frontend:** `tesis-simulador-transito-front`  
-**Proveedor Cloud:** Cloudflare Workers / Pages  
-**Backend Vinculado:** `https://tesis-simulador-transito-backend.onrender.com`  
-**Estado:** Integración y despliegue continuo (CI/CD)
+**Proveedor Cloud:** Cloudflare (Cloudflare Pages / Workers Edge Network)  
+**URL Pública de Producción:** [https://tesis-simulador-transito-front.bapaca.workers.dev](https://tesis-simulador-transito-front.bapaca.workers.dev)  
+**Backend Vinculado:** [https://tesis-simulador-transito-backend.onrender.com](https://tesis-simulador-transito-backend.onrender.com)  
+**Estado:** `Live & Active` (Despliegue Continuo CI/CD Automatizado)
 
 ---
 
-## 1. Resumen Ejecutivo de la Arquitectura Full-Stack
+## 1. Resumen Ejecutivo de la Infraestructura Cloud
 
-El ecosistema de la aplicación opera desacoplado en dos capas de infraestructura en la nube:
-1. **Frontend (Capa de Presentación):** Alojado en la red global *Edge* de **Cloudflare**, distribuyendo la interfaz de usuario en más de 300 centros de datos mundiales para carga ultrarrápida (baja latencia y alta disponibilidad).
-2. **Backend (Capa de Cómputo y Lógica):** Alojado en **Render**, ejecutando el contenedor Docker con Spring Boot 4, Google GenAI, Qdrant Cloud y Neon PostgreSQL.
-
-El siguiente diagrama ilustra el flujo de comunicación e integración entre ambas plataformas:
+La interfaz gráfica del proyecto **TransiAI** opera bajo un esquema moderno de **computación perimetral (Edge Computing) y arquitectura desacoplada Jamstack**. La aplicación se encuentra alojada y distribuida mundialmente a través de la red global de **Cloudflare**, eliminando la necesidad de servidores web monolíticos tradicionales (como Apache o Nginx dedicados) y garantizando tiempos de respuesta ultrarrápidos en milisegundos desde cualquier punto de conexión.
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    actor Usuario as Conductor / Usuario
-    participant CDN as Cloudflare Edge CDN (Frontend)
-    participant Browser as Navegador Web (Vue 3 Client)
-    participant Render as Render Cloud (Spring Boot Backend)
-    participant BD as Neon PostgreSQL + Qdrant Cloud
+flowchart TD
+    subgraph Usuarios ["Acceso de Usuarios (Dispositivos Móviles y Escritorio)"]
+        Movil["📱 Navegador Móvil (Smartphones)"]
+        PC["💻 Navegador Web (Escritorio)"]
+    end
 
-    Usuario->>CDN: 1. Ingresa a la URL del frontend (*.workers.dev / *.pages.dev)
-    CDN-->>Browser: 2. Entrega HTML, JS y CSS optimizados desde el Edge
-    Browser->>Browser: 3. Monta componentes Vue, Router y Widgets (Clima/Rutas)
-    
-    Note over Browser,Render: Flujo de Consultas de IA y Normativa
-    Usuario->>Browser: 4. Realiza pregunta de tránsito en el chat
-    Browser->>Render: 5. POST https://...onrender.com/api/chat (JSON + Bearer/Body)
-    Render->>BD: 6. Recupera vectores RAG (Qdrant) + Historial (Neon)
-    BD-->>Render: 7. Artículos de Ley y Contexto semántico
-    Render-->>Browser: 8. Server-Sent Events (SSE Streaming token por token)
-    Browser-->>Usuario: 9. Efecto de escritura fluido en pantalla
+    subgraph CloudflareEdge ["Capa Edge Cloudflare (Más de 300 Centros de Datos Mundiales)"]
+        Anycast["Red Anycast DNS y Protección DDoS"]
+        CDN["Cloudflare Pages / Workers Static Asset Caching"]
+        SPARouter["Manejador SPA (Single Page Application Router)"]
+        Anycast --> CDN --> SPARouter
+    end
+
+    subgraph ClientBrowser ["Cliente Web (Navegador del Usuario)"]
+        VueApp["Vue 3 + Vite Bundle Optimizado"]
+        ChatEngine["Consola de Chat TransiAI + SSE Stream Engine"]
+        EditInPlace["Edición In-Place & Acciones de Mensajes"]
+        Widgets["Widgets en Vivo (TomTom Maps + Open-Meteo)"]
+        VueApp --> ChatEngine
+        VueApp --> EditInPlace
+        VueApp --> Widgets
+    end
+
+    subgraph BackendRender ["Capa Backend en la Nube (Render PaaS - Oregon)"]
+        SpringAPI["Spring Boot 4.0.6 (API REST / SSE Streaming)"]
+        QdrantDB["Qdrant Cloud (Vector Store RAG)"]
+        NeonDB["Neon.tech PostgreSQL (Historial Serverless)"]
+        SpringAPI --> QdrantDB
+        SpringAPI --> NeonDB
+    end
+
+    Movil --> Anycast
+    PC --> Anycast
+    SPARouter --> ClientBrowser
+    ChatEngine -->|"HTTPS REST / SSE Streaming token por token"| SpringAPI
 ```
 
 ---
 
-## 2. Tecnologías y Herramientas Ocupadas en el Frontend
+## 2. Tecnologías Cloud y Herramientas Ocupadas en el Frontend
 
-### A. Cloudflare (Cloudflare Workers / Cloudflare Pages)
-* **Función:** Red de distribución de contenido (*Content Delivery Network* - CDN) y servidor *Edge* para la interfaz gráfica.
-* **¿Qué hace exactamente?:**
-  1. **Alojamiento y Despliegue Global:** En lugar de requerir un servidor dedicado con Linux/Apache, Cloudflare distribuye los archivos compilados (`dist/`) en centros de datos ubicados en todo el mundo (incluyendo puntos de presencia en Sudamérica/Ecuador).
-  2. **Manejo de Rutas SPA (*Single Page Application*):** A través de `wrangler.json`, configura la directiva:
+### A. Cloudflare (Cloudflare Pages & Workers)
+* **Función en el proyecto:** Servidor perimetral (*Edge Host*) y red de entrega de contenido (*Content Delivery Network* - CDN) global.
+* **Características técnicas aplicadas:**
+  1. **Distribución en el Edge Global:** Los archivos optimizados de producción (`dist/`) se replican en más de 300 centros de datos mundiales (con puntos de presencia directos en Quito y Sudamérica). La interfaz carga en menos de 100 milisegundos.
+  2. **Enrutamiento SPA (*Single Page Application*):** A través del archivo de configuración `wrangler.json`, se instruye a Cloudflare para gestionar el historial HTML5 sin provocar errores de archivo no encontrado:
      ```json
      "assets": {
        "directory": "./dist",
        "not_found_handling": "single-page-application"
      }
      ```
-     Esto asegura que al recargar la página directamente en la ruta `/chat` (o en la raíz `/`), Cloudflare no devuelva error 404 (File Not Found), sino que redirija el tráfico al archivo principal `index.html` para que Vue Router tome el control.
-  3. **Seguridad y Cifrado HTTPS Automático:** Emite certificados SSL/TLS con cifrado HTTP/2 y HTTP/3 nativo, protegiendo las sesiones contra ataques DDoS.
-  4. **Dominio Público:** Asigna un subdominio público accesible mundialmente (`*.workers.dev` o `*.pages.dev`).
-  5. **Directiva de Compatibilidad (`compatibility_date: 2024-09-23`):** Define la versión base estable del runtime de Workers en la que se congelan las características del motor JS, garantizando compatibilidad total y evitando rechazos por fechas futuras en la API de Cloudflare.
+     Esto garantiza que al refrescar la página (`F5`) o acceder directamente a rutas internas como `/chat` o `/`, Cloudflare redirige limpiamente hacia `index.html` para que Vue Router procese la vista sin generar el error `404 Not Found`.
+  3. **Seguridad Perimetral y Cifrado:** Certificados SSL/TLS 1.3 automáticos, soporte nativo de HTTP/2 y HTTP/3, compresión Brotli y mitigación automática de ataques de denegación de servicio (DDoS).
+  4. **Despliegue Continuo (CI/CD Automático):** Conectado directamente al repositorio de GitHub `BelenPaca/tesis-simulador-transito-front`. Cada `git push` a la rama `main` dispara automáticamente la compilación y actualización de la plataforma en la nube.
 
 ---
 
 ### B. Vue 3 (Composition API) & Vite 8
-* **Función:** Núcleo de desarrollo de la interfaz de usuario moderna.
+* **Función:** Motor reactivo de interfaz y empaquetador ultrarrápido para producción.
 * **Componentes Principales:**
-  * **LandingView.vue:** Pantalla principal de bienvenida con acceso rápido y diseño interactivo.
-  * **ChatView.vue:** Consola interactiva del asistente inteligente TransiAI, dashboard de infracciones, gestión de historial de actividad y widgets en tiempo real.
-  * **Vue Router 4:** Navegación fluida del lado del cliente sin parpadeos de recarga entre la bienvenida y la sala de chat.
-* **Vite 8:** Herramienta de compilación ultrarrápida (*bundler*) que empaqueta y minimiza los archivos JavaScript y estilos CSS en la carpeta optimizada `dist/`.
+  * **`LandingView.vue`:** Portal de entrada con diseño moderno, selección de accesos directos y presentación institucional.
+  * **`ChatView.vue`:** Consola central de interacción con IA, historial dinámico en tiempo real, visualización de tacómetro legal y gestor de actividad.
+  * **`src/config.js`:** Enrutador de entornos dinámicos que conecta automáticamente en local con el proxy de desarrollo y en la nube con la URL de producción de Render.
 
 ---
 
-### C. APIs Auxiliares Integradas en el Frontend
-* **Open-Meteo & BigDataCloud:** Detección de geolocalización y estado del tiempo en vivo con iconos dinámicos (día/noche, lluvia, niebla) para alertas viales preventivas.
-* **TomTom Maps & Routing SDK:** Estimación de tráfico, tiempos de viaje y rutas alternas visualizadas directamente en el panel lateral del chat.
+### C. Servicios Cloud y APIs Externas Integradas
+1. **TomTom Maps & Routing SDK:** Monitoreo en tiempo real de tiempos de viaje y estimación de congestión vial en las principales arterias de Quito (Aeropuerto, Universidad Central, Terminal Terrestre).
+2. **Open-Meteo & BigDataCloud:** Detección de geolocalización del usuario y clima dinámico de la ciudad ecuatoriana en vivo, con iconografía día/noche y advertencias viales.
+3. **Google Identity Services (OAuth 2.0 / JWT):** Inicio de sesión con cuentas de Google, persistiendo los chats de los usuarios en la base de datos de la nube y migrando automáticamente las consultas de los invitados.
 
 ---
 
-## 3. ¿Cómo se Conectan el Frontend y el Backend? (Paso a Paso)
+## 3. Nuevas Funcionalidades y Mejoras de Interacción Implementadas
 
-Para que el frontend en Cloudflare pueda dialogar con el backend en Render, se implementan tres mecanismos clave:
-
-### 1. Variables de Entorno en el Frontend (`VITE_API_BASE_URL`)
-En desarrollo local, el frontend apunta a `http://localhost:5173`. En producción (Cloudflare), el código cliente detecta dinámicamente si existe una variable de entorno:
-```javascript
-// src/config.js o dentro de los servicios
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tesis-simulador-transito-backend.onrender.com';
-```
-
-Al compilar o desplegar en Cloudflare, todas las llamadas se redirigen a la URL pública de Render:
-* `GET ${API_BASE_URL}/api/conversations` (Listar historial)
-* `POST ${API_BASE_URL}/api/chat` (Consultar al asistente con Streaming)
-* `DELETE ${API_BASE_URL}/api/conversations/{id}` (Eliminar consulta individual)
-* `DELETE ${API_BASE_URL}/api/conversations` (Borrar toda la actividad)
-* `POST ${API_BASE_URL}/api/documents/upload` (Ingesta de documentos RAG)
-
----
-
-### 2. Configuración de CORS en el Backend (Render)
-Los navegadores bloquean por seguridad cualquier petición JavaScript que vaya desde un dominio (ej. `*.workers.dev`) hacia otro dominio diferente (`*.onrender.com`). A esto se le conoce como **CORS (Cross-Origin Resource Sharing)**.
-
-En el backend de Spring Boot, esto se encuentra solventado mediante el componente `CorsConfig.java`:
-```java
-@Configuration
-public class CorsConfig {
-    @Bean
-    public WebMvcConfigurer corsConfigurer() {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/**")
-                        .allowedOrigins("*")
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                        .allowedHeaders("*");
-            }
-        };
-    }
-}
-```
-* **Qué hace:** Le responde al navegador con las cabeceras `Access-Control-Allow-Origin: *`, autorizando al frontend de Cloudflare a leer las respuestas del servidor sin bloqueos de seguridad.
-
----
-
-### 3. Comunicación por Streaming (Server-Sent Events - SSE)
-La consulta al asistente no es una petición tradicional que espera 10 segundos a que el texto esté completo. Utiliza **Server-Sent Events**:
-1. El frontend abre una conexión `POST` con cabecera `Accept: text/event-stream`.
-2. El backend en Render genera los tokens con Gemini y los envía de inmediato en paquetes Base64 a través del flujo `Flux<ServerSentEvent<String>>`.
-3. El frontend decodifica cada trozo de texto en tiempo real (`TextDecoder`) y lo añade reactivamente al mensaje visible en la pantalla.
-
----
-
-## 4. Matriz Comparativa de Roles en la Arquitectura
-
-| Dimensión | Frontend (Cloudflare) | Backend (Render) |
+| Componente | Funcionalidad Implementada | Beneficio de Usuario |
 |---|---|---|
-| **Tecnología** | Vue 3 + Vite + JavaScript | Spring Boot 4 + Java 25 (Docker) |
-| **Tipo de Servicio** | Edge CDN / Static Assets Hosting | Container PaaS (API Server) |
-| **Responsabilidad** | Interfaz visual, reactividad, mapa TomTom y clima | Lógica de negocio, RAG, IA y consultas SQL |
-| **Consumo de Memoria** | Ejecutado en el cliente (0 MB de servidor) | ~200 MB en Render (JVM optimizada) |
-| **Seguridad de Claves** | Claves públicas de mapas y clima | Claves privadas (Gemini, Neon, Qdrant) protegidas |
+| **Edición In-Place en el Mensaje** | Al pulsar el ícono de lápiz en la pregunta del usuario, la burbuja se transforma en un área de edición ahí mismo con botones **Cancelar** y **Actualizar**. | No se envía el texto al input inferior; permite corregir la consulta en el mismo globo y re-ejecutar la respuesta sin recargar la página. |
+| **Control de Carga de Archivos (`✕`)** | Integración de `AbortController` al presionar la 'X' en documentos adjuntos. | Se cancela la subida de inmediato y se limpia el estado sin que la animación se quede en bucle de "cargando". |
+| **Copiado Inteligente** | Botón de copia con limpieza de expresiones regulares internas (`[LEGAL_SOURCES]`, `[INFRACTION_DATA]`) y confirmación `"Copiado"`. | Permite al usuario copiar el texto puro y limpio al portapapeles con confirmación visual adaptada a móviles. |
+| **Lectura Anclada Arriba (Estilo Gemini)** | Control de scroll suave mediante anclaje (`scrollIntoView`) en el inicio del mensaje. | Por más extensa que sea la respuesta legal o el cálculo de indemnización, la pantalla no arrastra al usuario al fondo, permitiendo leer desde el primer renglón. |
+| **Pastillas Dinámicas de Normativa** | Renderizado de etiquetas de ley (LOTTTSV, COIP, Código del Trabajo, Reglamentos) extraídas de Qdrant Cloud con popovers informativos y regla de unicidad. | El usuario conoce con exactitud el respaldo normativo oficial de cada párrafo sin información duplicada o quemada. |
+| **Adaptabilidad Móvil 100% (Responsive)** | Ajuste de cajas de texto, tooltips flotantes negros con márgenes protegidos (`right: 0` y `left: 0`) y áreas táctiles de 32px. | Navegación fluida en teléfonos celulares de cualquier resolución sin desbordamientos laterales ni barras de desplazamiento horizontal. |
 
 ---
 
-## 5. Resumen de Pasos para la Puesta en Producción
+## 4. Flujo de Comunicación Full-Stack (Cloudflare ⇄ Render)
 
-1. **Construcción del Frontend:**  
-   Se ejecuta `npm run build` en el repositorio frontend para generar el paquete estático en `dist/`.
-2. **Despliegue a Cloudflare:**  
-   Mediante GitHub Actions o el CLI `wrangler deploy`, Cloudflare publica la carpeta `dist/` con las rutas SPA controladas.
-3. **Vinculación de URLs:**  
-   * En Cloudflare: Se configura `VITE_API_BASE_URL = https://tesis-simulador-transito-backend.onrender.com`.
-   * En Render: Se configura `FRONTEND_URL = https://[tu-subdominio].workers.dev` para restringir el origen seguro de peticiones si se desea.
+```
+[ Navegador Web / Celular ]
+       │
+       │ 1. Carga inicial de archivos estáticos (HTML/CSS/JS)
+       ▼
+[ Cloudflare Pages Edge CDN ] (bapaca.workers.dev)
+       │
+       │ 2. Llamada REST / SSE a la API de Producción
+       │    (Autorizado por CORS: Access-Control-Allow-Origin: *)
+       ▼
+[ Render PaaS (Spring Boot 4) ] (tesis-simulador-transito-backend.onrender.com)
+       │
+       ├──► [ Qdrant Cloud (Cluster Oregon) ] : Búsqueda de similitud vectorial
+       ├──► [ Neon.tech PostgreSQL (Ohio) ]  : Persistencia de conversaciones
+       └──► [ Google GenAI (Gemini) ]        : Generación de respuesta con SSE Streaming
+       │
+       │ 3. Transmisión token por token (Server-Sent Events)
+       ▼
+[ Renderizado en pantalla en tiempo real con efecto máquina de escribir ]
+```
+
+---
+
+## 5. Verificación de Despliegue en la Nube
+
+* **Compilación Frontend:** `vite build` genera el artefacto en menos de 1 segundo (`dist/`).
+* **Estado en Cloudflare:** `Active / Success`.
+* **Prueba de Enrutamiento:** Acceso directo a `https://tesis-simulador-transito-front.bapaca.workers.dev/chat` verificado y funcional.

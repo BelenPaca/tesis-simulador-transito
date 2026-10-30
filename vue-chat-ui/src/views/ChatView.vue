@@ -520,7 +520,7 @@
         <!-- Messages List -->
         <div class="chat-messages" v-if="currentMessages.length > 0 || isStreaming">
           <div v-for="(msg, idx) in currentMessages" :key="idx" class="message-wrapper">
-            <div class="message" :class="msg.role">
+            <div class="message" :class="[msg.role, { 'is-editing-message': editingMessageIdx === idx }]">
               <div class="message-bubble" :class="{ 'is-editing': editingMessageIdx === idx }">
                 <div v-if="msg.attachedFile" class="message-attached-file">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -558,7 +558,7 @@
                 <!-- Resumen de artículos analizados al pie del mensaje -->
                 <div v-if="msg.role === 'assistant' && getAnalyzedCount(msg.content) > 0" class="gemini-sources-bar">
                   <span class="gemini-sources-count">
-                    {{ getAnalyzedCount(msg.content) }} {{ getAnalyzedCount(msg.content) === 1 ? 'artículo analizado' : 'artículos analizados' }} de la normativa de tránsito
+                    {{ getAnalyzedCount(msg.content) }} {{ getAnalyzedCount(msg.content) === 1 ? 'artículo analizado' : 'artículos analizados' }} del marco legal consultado
                   </span>
                 </div>
               </div>
@@ -1926,7 +1926,7 @@ export default {
       }
 
       const qdrantSources = getMessageLegalSources(content);
-      // Ocultar los bloques de metadatos del sistema (incluso si están a medio transmitir) y normalizar fórmulas
+      // Ocultar los bloques de metadatos del sistema y normalizar fórmulas
       let text = content
         .replace(/\[INFRACTION_DATA\][\s\S]*?(?:\[\/INFRACTION_DATA\]|$)/gi, '')
         .replace(/\[LEGAL_SOURCES\][\s\S]*?(?:\[\/LEGAL_SOURCES\]|$)/gi, '')
@@ -1937,99 +1937,103 @@ export default {
 
       const paragraphs = text.split(/\n\n+/);
 
-      // Paso 1: Analizar qué fuente real de Qdrant le corresponde a cada párrafo
-      const paragraphSources = paragraphs.map(p => {
-        let trimmed = p.trim();
-        if (!trimmed || trimmed.includes('Nota: Esta información es generada') || trimmed.startsWith('⚠️')) {
-          return null;
+      // Separar párrafos analíticos del descargo legal obligatorio
+      const analyticalIndices = [];
+      for (let i = 0; i < paragraphs.length; i++) {
+        const pTrim = (paragraphs[i] || '').trim();
+        if (pTrim && !pTrim.startsWith('⚠️') && !pTrim.includes('Nota: Esta información es generada')) {
+          analyticalIndices.push(i);
+        }
+      }
+
+      // Helper para renderizar la pastilla HTML con tooltip
+      function buildPillHtml(src) {
+        const safeExtract = (src.extract || '').replace(/"/g, '&quot;');
+        return ` <span class="gemini-inline-cite-wrapper">` +
+               `<span class="gemini-inline-cite">${src.badge}</span>` +
+               `<span class="gemini-tooltip-popover">` +
+               `<span class="tooltip-header"><span class="tooltip-title">${src.title}</span></span>` +
+               `<span class="tooltip-article-badge">${src.article || 'Normativa oficial'}</span>` +
+               `<span class="tooltip-extract">&quot;${safeExtract}&quot;</span>` +
+               `</span></span>`;
+      }
+
+      // Mapa de pastillas por índice de párrafo (cada ley solo aparece una vez)
+      const pillsByParagraph = new Map();
+
+      if (qdrantSources && qdrantSources.length > 0) {
+        // Deduplicar fuentes reales por badge único
+        const uniqueSources = [];
+        const seenBadges = new Set();
+        for (const s of qdrantSources) {
+          if (s.badge && !seenBadges.has(s.badge)) {
+            seenBadges.add(s.badge);
+            uniqueSources.push(s);
+          }
         }
 
-        const pLower = trimmed.toLowerCase();
-        let matchedBadge = '';
-        let matchedTitle = '';
-        let matchedExtract = '';
+        if (uniqueSources.length === 1) {
+          // Una sola ley consultada: Colocar su pastilla al final del último párrafo analítico
+          if (analyticalIndices.length > 0) {
+            const lastIdx = analyticalIndices[analyticalIndices.length - 1];
+            pillsByParagraph.set(lastIdx, [buildPillHtml(uniqueSources[0])]);
+          }
+        } else {
+          // Múltiples leyes consultadas: Asignar a párrafos afines o agrupar al final
+          const unassignedSources = [];
 
-        // Si Qdrant devolvió fuentes vectoriales reales
-        if (qdrantSources && qdrantSources.length > 0) {
-          // Si solo hay una única fuente recuperada en toda la consulta, asignarla directamente al bloque analítico
-          if (qdrantSources.length === 1) {
-            matchedBadge = qdrantSources[0].badge;
-            matchedTitle = qdrantSources[0].title;
-            matchedExtract = qdrantSources[0].extract;
-          } else {
-            // Si hay múltiples fuentes de Qdrant, asociar el párrafo con la fuente correspondiente
-            for (const s of qdrantSources) {
-              const bLower = (s.badge || '').toLowerCase();
-              const isMatch = (s.article && trimmed.includes(s.article)) ||
-                              (bLower && pLower.includes(bLower)) ||
-                              (bLower.includes('trabajo') && (pLower.includes('código del trabajo') || pLower.includes('codigo del trabajo') || pLower.includes('laboral'))) ||
-                              (bLower.includes('reglamento') && pLower.includes('reglamento')) ||
-                              (bLower.includes('coip') && (pLower.includes('coip') || pLower.includes('penal'))) ||
-                              (bLower.includes('lotttsv') && pLower.includes('lotttsv'));
-              if (isMatch) {
-                matchedBadge = s.badge;
-                matchedTitle = s.title;
-                matchedExtract = s.extract;
+          for (const src of uniqueSources) {
+            const bLower = (src.badge || '').toLowerCase();
+            let matchedIdx = -1;
+
+            // Buscar el último párrafo que mencione específicamente esta ley o su artículo
+            for (let i = analyticalIndices.length - 1; i >= 0; i--) {
+              const pIdx = analyticalIndices[i];
+              const pText = (paragraphs[pIdx] || '').toLowerCase();
+
+              const hasArticle = src.article && src.article.startsWith('Art.') && pText.includes(src.article.toLowerCase());
+              let hasLawMention = false;
+
+              if (bLower.includes('trabajo')) {
+                hasLawMention = pText.includes('código del trabajo') || pText.includes('codigo del trabajo') || pText.includes('código de trabajo') || pText.includes('codigo de trabajo') || pText.includes('laboral') || pText.includes('iess');
+              } else if (bLower.includes('coip')) {
+                hasLawMention = pText.includes('coip') || pText.includes('penal') || pText.includes('fiscal') || pText.includes('aprehender');
+              } else if (bLower.includes('cogep')) {
+                hasLawMention = pText.includes('cogep') || pText.includes('general de procesos');
+              } else if (bLower.includes('constituc')) {
+                hasLawMention = pText.includes('constitución') || pText.includes('constitucion');
+              } else if (bLower.includes('reglamento')) {
+                hasLawMention = pText.includes('reglamento general') || pText.includes('reglamento lotttsv') || (pText.includes('reglamento') && (pText.includes('tránsito') || pText.includes('transito') || pText.includes('vehículo')));
+              } else if (bLower.includes('lotttsv')) {
+                hasLawMention = pText.includes('lotttsv') || pText.includes('ley de transporte') || pText.includes('ley orgánica de transporte');
+              }
+
+              if (hasArticle || hasLawMention) {
+                matchedIdx = pIdx;
                 break;
               }
             }
-          }
-        } else {
-          // Respaldo pasivo si no hay metadatos: únicamente por mención explícita en el párrafo
-          if (pLower.includes('código del trabajo') || pLower.includes('codigo del trabajo') || pLower.includes('laboral')) {
-            matchedBadge = 'Código del Trabajo';
-            matchedTitle = 'Código del Trabajo del Ecuador';
-            matchedExtract = 'Disposiciones normativas sobre responsabilidades laborales, avisos al Inspector del Trabajo e indemnizaciones.';
-          } else if (pLower.includes('reglamento')) {
-            matchedBadge = 'Reglamento LOTTTSV';
-            matchedTitle = 'Reglamento General para la Aplicación de la LOTTTSV';
-            matchedExtract = 'Normativa reglamentaria sobre procedimientos técnicos, deberes ante siniestros viales y peritajes de tránsito.';
-          } else if (pLower.includes('coip') || pLower.includes('penal')) {
-            matchedBadge = 'COIP Tránsito';
-            matchedTitle = 'Código Orgánico Integral Penal (COIP)';
-            matchedExtract = 'Tipifica las contravenciones y delitos de tránsito, sanciones, multas y reducción de puntos.';
-          } else if (pLower.includes('lotttsv')) {
-            matchedBadge = 'LOTTTSV';
-            matchedTitle = 'Ley Orgánica de Transporte Terrestre, Tránsito y Seguridad Vial';
-            matchedExtract = 'Marco legal rector de transporte terrestre y seguridad vial, títulos habilitantes y control en Ecuador.';
-          } else if (pLower.includes('constitución') || pLower.includes('constitucion')) {
-            matchedBadge = 'Constitución';
-            matchedTitle = 'Constitución de la República del Ecuador';
-            matchedExtract = 'Norma suprema que ampara los derechos constitucionales, el debido proceso y la libre movilidad.';
-          }
-        }
 
-        return matchedBadge ? { badge: matchedBadge, title: matchedTitle, extract: matchedExtract } : null;
-      });
-
-      // Garantía: Si Qdrant entregó fuentes pero ningún párrafo coincidió por nombre literal,
-      // asignar la fuente principal al último párrafo analítico para que siempre haya pastilla de respaldo
-      if (qdrantSources && qdrantSources.length > 0) {
-        const hasAnyBadge = paragraphSources.some(src => src && src.badge);
-        if (!hasAnyBadge) {
-          for (let i = paragraphSources.length - 1; i >= 0; i--) {
-            const pTrim = (paragraphs[i] || '').trim();
-            if (pTrim && !pTrim.includes('Nota: Esta información es generada') && !pTrim.startsWith('⚠️')) {
-              paragraphSources[i] = {
-                badge: qdrantSources[0].badge,
-                title: qdrantSources[0].title,
-                extract: qdrantSources[0].extract
-              };
-              break;
+            if (matchedIdx !== -1) {
+              const current = pillsByParagraph.get(matchedIdx) || [];
+              current.push(buildPillHtml(src));
+              pillsByParagraph.set(matchedIdx, current);
+            } else {
+              unassignedSources.push(src);
             }
+          }
+
+          // Fuentes no asignadas a un párrafo específico se colocan al final del bloque analítico
+          if (unassignedSources.length > 0 && analyticalIndices.length > 0) {
+            const lastIdx = analyticalIndices[analyticalIndices.length - 1];
+            const current = pillsByParagraph.get(lastIdx) || [];
+            unassignedSources.forEach(s => current.push(buildPillHtml(s)));
+            pillsByParagraph.set(lastIdx, current);
           }
         }
       }
 
-      // Paso 2: Regla de Unicidad Absoluta (solo colocar la pastilla una sola vez por documento, al final de su bloque)
-      const lastIndexByBadge = new Map();
-      paragraphSources.forEach((src, idx) => {
-        if (src && src.badge) {
-          lastIndexByBadge.set(src.badge, idx);
-        }
-      });
-
-      // Paso 3: Renderizar texto con HTML y la pastilla única sin repeticiones
+      // Renderizar texto formateando párrafos con sus pastillas únicas
       const formattedParagraphs = paragraphs.map((p, idx) => {
         let trimmed = p.trim();
         if (!trimmed) return '';
@@ -2038,16 +2042,9 @@ export default {
         h = h.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         h = h.replace(/\n/g, '<br>');
 
-        const src = paragraphSources[idx];
-        if (src && src.badge && lastIndexByBadge.get(src.badge) === idx) {
-          const safeExtract = (src.extract || '').replace(/"/g, '&quot;');
-          h += ` <span class="gemini-inline-cite-wrapper">` +
-               `<span class="gemini-inline-cite">${src.badge}</span>` +
-               `<span class="gemini-tooltip-popover">` +
-               `<span class="tooltip-header"><span class="tooltip-title">${src.title}</span></span>` +
-               `<span class="tooltip-article-badge">Texto complementario de Qdrant</span>` +
-               `<span class="tooltip-extract">&quot;${safeExtract}&quot;</span>` +
-               `</span></span>`;
+        const pills = pillsByParagraph.get(idx);
+        if (pills && pills.length > 0) {
+          h += pills.join('');
         }
         return h;
       });

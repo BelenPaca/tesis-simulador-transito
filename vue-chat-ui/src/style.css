@@ -318,6 +318,13 @@ body {
 .message-wrapper:focus-within { z-index: 40; }
 .message { display: flex; flex-direction: column; gap: 6px; max-width: 85%; min-width: 0; box-sizing: border-box; }
 .message.user { align-self: flex-end; align-items: flex-end; }
+.message.is-editing-message,
+.message.user.is-editing-message {
+  width: 100% !important;
+  max-width: 100% !important;
+  align-self: stretch !important;
+  align-items: stretch !important;
+}
 .message.assistant { align-self: flex-start; align-items: flex-start; }
 .message-bubble { padding: 16px 20px; border-radius: 16px; font-size: 14.5px; line-height: 1.6; box-shadow: var(--shadow-sm); max-width: 100%; min-width: 0; word-break: break-word; overflow-wrap: break-word; box-sizing: border-box; }
 .message.user .message-bubble { background: #e6f6ee; color: #065f46; border-bottom-right-radius: 4px; }
@@ -329,10 +336,12 @@ body {
   color: var(--text-primary) !important;
   border: 1.5px solid #0db37b !important;
   box-shadow: 0 4px 16px rgba(13, 179, 123, 0.2) !important;
-  padding: 12px 14px !important;
-  width: 100%;
-  min-width: 280px;
-  max-width: 620px;
+  padding: 14px 18px !important;
+  border-radius: 16px !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
 }
 .dark-theme .message-bubble.is-editing {
   background: #1e293b !important;
@@ -357,7 +366,8 @@ body {
   line-height: 1.5;
   color: var(--text-primary, #0f172a);
   padding: 0;
-  min-height: 48px;
+  min-height: 38px;
+  overflow-y: hidden;
 }
 .dark-theme .inplace-edit-textarea {
   color: #f1f5f9;
