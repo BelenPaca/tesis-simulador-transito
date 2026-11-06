@@ -747,18 +747,21 @@
             <textarea
                 ref="inputTextarea"
                 v-model="inputMessage"
-                placeholder="Escribe tu pregunta sobre tránsito o adjunta un documento..."
+                :placeholder="isUploading ? 'Indexando documento en Qdrant, por favor espera...' : 'Escribe tu pregunta sobre tránsito o adjunta un documento...'"
                 @input="adjustTextareaHeight"
-                @keydown.enter.exact.prevent="sendMessage"
-                :disabled="isStreaming"
+                @keydown.enter.exact.prevent="!isUploading && sendMessage()"
+                :disabled="isStreaming || isUploading"
                 rows="1"
             ></textarea>
             <div class="has-custom-tooltip">
-              <button class="send-btn" @click="sendMessage" :disabled="!inputMessage.trim() || isStreaming" aria-label="Enviar mensaje">
+              <button class="send-btn" @click="sendMessage" :disabled="!inputMessage.trim() || isStreaming || isUploading" aria-label="Enviar mensaje">
                 ➤
               </button>
-              <div class="custom-tooltip-pill tooltip-top align-right" v-if="inputMessage.trim() && !isStreaming">
+              <div class="custom-tooltip-pill tooltip-top align-right" v-if="inputMessage.trim() && !isStreaming && !isUploading">
                 Enviar mensaje
+              </div>
+              <div class="custom-tooltip-pill tooltip-top align-right" v-else-if="isUploading">
+                Subiendo e indexando documento...
               </div>
             </div>
           </div>
@@ -1780,7 +1783,7 @@ export default {
 
     async function sendMessage() {
       const text = inputMessage.value.trim();
-      if (!text || isStreaming.value) return;
+      if (!text || isStreaming.value || isUploading.value) return;
 
       if (!activeConversationId.value) newConversation();
       const convId = activeConversationId.value;
