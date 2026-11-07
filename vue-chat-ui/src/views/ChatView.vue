@@ -24,8 +24,10 @@
           <h3>¿Eliminar todo el historial?</h3>
           <p>Se borrarán de forma definitiva todas las consultas y conversaciones registradas.</p>
           <div class="modal-actions">
-            <button class="btn-cancel" @click="showConfirmClearAllModal = false">Cancelar</button>
-            <button class="btn-confirm" @click="confirmClearAllHistory">Sí, borrar todo</button>
+            <button class="btn-cancel" :disabled="isClearingHistory" @click="showConfirmClearAllModal = false">Cancelar</button>
+            <button class="btn-confirm" :disabled="isClearingHistory" @click="confirmClearAllHistory">
+              {{ isClearingHistory ? 'Borrando...' : 'Sí, borrar todo' }}
+            </button>
           </div>
         </div>
       </div>
@@ -84,7 +86,7 @@
                 </div>
                 <div class="activity-item-query">{{ conv.title || 'Consulta de tránsito' }}</div>
                 <div class="activity-item-footer">
-                  <span>🕒 {{ conv.createdAt ? conv.createdAt.substring(11, 16) : 'Reciente' }}</span>
+                  <span>🕒 {{ formatActivityTime(conv.createdAt) }}</span>
                   <span>•</span>
                   <span>Detalles</span>
                 </div>
@@ -997,6 +999,7 @@ export default {
     // Modal state
     const showDeleteModal = ref(false);
     const showConfirmClearAllModal = ref(false);
+    const isClearingHistory = ref(false);
     const convToDelete = ref(null);
 
     const suggestedQuestions = [
@@ -1652,6 +1655,18 @@ export default {
       return 'rotate(60deg)'; // MUY GRAVE
     }
 
+    function formatActivityTime(dateStr) {
+      if (!dateStr) return 'Reciente';
+      try {
+        const utcStr = dateStr.endsWith('Z') || dateStr.includes('+') ? dateStr : dateStr + 'Z';
+        const d = new Date(utcStr);
+        if (isNaN(d.getTime())) return dateStr.substring(11, 16);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      } catch (e) {
+        return dateStr.substring(11, 16);
+      }
+    }
+
     // ─── CHAT LOGIC ──────────────────────────────────────────────────────────
     function scrollToLatestPrompt() {
       if (!chatArea.value) return;
@@ -1741,6 +1756,9 @@ export default {
                   const decodedChunk = new TextDecoder('utf-8').decode(bytes);
                   pushTokens(decodedChunk);
                 } catch (e) {}
+              } else if (currentEvent === 'error') {
+                console.error('SSE Error recibido:', data);
+                pushTokens('\n\n⚠️ *Nota:* Hubo una intermitencia momentánea al procesar la respuesta. Por favor envía tu pregunta nuevamente.');
               }
             }
           }
@@ -1765,6 +1783,11 @@ export default {
               showGuestBanner.value = true;
             }
           }
+        } else {
+          localMessages.value[convId].push({
+            role: 'assistant',
+            content: '⚠️ No se pudo obtener una respuesta en este momento. Por favor reformula o vuelve a enviar tu consulta.'
+          });
         }
       } catch (e) {
         console.error(e);
@@ -2173,8 +2196,16 @@ export default {
     }
 
     async function confirmClearAllHistory() {
+      if (isClearingHistory.value) return;
+      isClearingHistory.value = true;
       let currentIds = conversations.value.map(c => c.id);
       try {
+        // Efecto visual inmediato: limpiar la lista reactiva en pantalla al instante
+        allConvsList.value = [];
+        conversations.value = [];
+        localMessages.value = {};
+        activeConversationId.value = null;
+
         const res = await fetch(`${API_BASE_URL}/api/conversations`, {
           headers: { 'X-User-Id': currentUserId.value }
         }).catch(() => null);
@@ -2204,11 +2235,12 @@ export default {
         localStorage.setItem('transiai_hidden_conv_ids', JSON.stringify(allHidden));
         localStorage.removeItem('transiai_activity_cleared_at');
 
-        // 4. Limpiar estado reactivo
+        // 4. Limpiar estado reactivo definitivo
         allConvsList.value = [];
         conversations.value = [];
         localMessages.value = {};
         activeConversationId.value = null;
+        isClearingHistory.value = false;
 
         // 5. Cerrar modales y notificar éxito
         showConfirmClearAllModal.value = false;
@@ -2226,13 +2258,13 @@ export default {
       currentUser, showGuestBanner, showLoginModal, showUserMenu, openLoginModal, dismissGuestBanner, logoutUser, goToHome,
       conversations, allConvsList, activeConversationId, currentMessages, inputMessage, isStreaming, streamingContent,
       chatArea, selectedModel, isCloudEnvironment, weatherData, trafficAlerts, suggestedQuestions, isDarkMode,
-      showDeleteModal, showConfirmClearAllModal, convToDelete, weatherLocationName, isLocatingWeather,
+      showDeleteModal, showConfirmClearAllModal, isClearingHistory, convToDelete, weatherLocationName, isLocatingWeather,
       weatherCondition, fetchWeather, routeEstimates, isLoadingRoutes, fetchRoutesInfo,
       tomtomMapRef, isMapLoaded, initTomTomMap, inputTextarea, isResettingChat,
       fileInputRef, isUploading, attachedFile, removeAttachedFile, handleFileUpload, adjustTextareaHeight,
       showSettingsMenu, showThemeSubmenu, showActivityModal, showModelModal, showLegalModal, showSuccessClearModal,
       dontShowDeleteNoticeAgain, dismissSuccessClearModal,
-      openActivityModal, openModelModal, openLegalModal, clearChatActivity, confirmClearAllHistory,
+      openActivityModal, openModelModal, openLegalModal, clearChatActivity, confirmClearAllHistory, formatActivityTime,
       isMobileSidebarOpen, isMobileWidgetsOpen, closeMobileDrawers,
       hoveredConvTitle, hoveredTooltipTop, onConvMouseEnter, onConvMouseLeave,
       newConversation, selectConversation, deleteSidebarConversation, deleteActivityConversation, confirmDelete, sendMessage, sendSuggestion, 
