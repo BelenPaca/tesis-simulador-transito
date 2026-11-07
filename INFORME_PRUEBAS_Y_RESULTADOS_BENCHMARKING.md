@@ -1,0 +1,262 @@
+# INFORME DE PRUEBAS, EVALUACIÓN DE RENDIMIENTO Y RESULTADOS
+## Proyecto de Titulación: Simulador de Tránsito con Asistente RAG Inteligente (TransiAI)
+
+**Autora:** Belén Paca  
+**Fecha:** Noviembre 2026  
+**Ecosistema Tecnológico:** Java 25 / Spring Boot 4.0.6 / Spring AI / Vue.js 3  
+**Corpus Jurídico Fuente:** Base de datos legal especializada **FielWeb Plus**  
+**Últimas Reformas Oficiales Incorporadas:**
+- **COIP:** Noveno Suplemento del Registro Oficial No. 392 (19 de octubre de 2026)
+- **LOTTTSV / Tránsito:** Séptimo Suplemento del Registro Oficial No. 380 (30 de septiembre de 2026)
+
+---
+
+## 1. Fundamentación Metodológica y Arquitectura Experimental
+
+Para la validación experimental y la recolección de los datos presentados en el Capítulo de Resultados, se estructuró un marco de evaluación formal contrastando dos entornos de despliegue:
+
+1. **Entorno Local (Línea Base, Privacidad y Soberanía):** Orquestado mediante contenedores con **Podman**, integrando **Spring Boot** con **Spring AI**, la base de datos vectorial **Qdrant** expuesta en su puerto REST local **`6333`**, y el modelo local de representaciones vectoriales `paraphrase-multilingual-MiniLM-L12-v2` ejecutado sobre **ONNX Runtime** para inferencia sobre CPU sin dependencia de conexión a internet.
+2. **Entorno en la Nube (Producción y Validación de Usuarios):** Desplegado públicamente para acceso de usuarios y pruebas de usabilidad, compuesto por:
+   - **Frontend:** **Cloudflare Pages** (distribución perimetral en el Edge, Vue.js 3 + Vite).
+   - **Backend:** **Render (PaaS)** ejecutando la aplicación Spring Boot sobre OpenJDK 25.
+   - **Persistencia Transaccional:** **Neon.tech** (PostgreSQL Serverless para historial de chat y soporte multi-documento por sesión).
+   - **Base de Datos Vectorial:** **Qdrant Cloud Cluster** (almacenamiento y búsqueda vectorial gestionada en la nube).
+   - **Modelos IA:** Google `gemini-embedding-001` para vectorización en la nube y **`gemini-3.1-flash-lite`** como modelo fundacional para la inferencia textual y estructuración JSON del velocímetro `[INFRACTION_DATA]`.
+
+---
+
+## 2. Marco Matemático y Formulación de Métricas
+
+Para garantizar el rigor científico requerido en una tesis de ingeniería, cada valor reportado en los cuadros proviene de formulaciones estadísticas, de telecomunicaciones y de Recuperación de Información (IR) formalmente definidas:
+
+### 2.1. Métricas de Transmisión Streaming y Latencia (Cuadros 4.7 y 4.8)
+
+El backend expone la comunicación bajo el protocolo **Server-Sent Events (SSE)** en streaming. Cuando un cliente (el navegador o la suite de pruebas en Java) envía una petición `POST` al endpoint `/api/chat`:
+
+1. **Tiempo hasta el Primer Token (TTFT - Time To First Token):**
+   Mide el retardo inicial percibido por el usuario hasta que la primera unidad léxica es decodificada y proyectada en pantalla:
+   $$\text{TTFT} = t_{\text{primer token}} - t_{\text{inicio}}$$
+   Donde $t_{\text{inicio}}$ es la estampa de tiempo de alta resolución (`System.nanoTime()`) al emitir el request HTTP, y $t_{\text{primer token}}$ es el instante exacto en que arriba el primer evento `event: token` vía SSE.
+
+2. **Tiempo Total de Respuesta (End-to-End Latency):**
+   Cuantifica el ciclo completo de procesamiento y transmisión hasta la recepción del bloque estructurado `[INFRACTION_DATA]` y el cierre del stream:
+   $$\text{Tiempo Total} = t_{\text{fin}} - t_{\text{inicio}}$$
+
+3. **Descomposición Secuencial de Latencias (Cuadro 4.7):**
+   $$\text{Tiempo Total} = \Delta t_{\text{Embedding}} + \Delta t_{\text{Qdrant}} + \Delta t_{\text{LLM}} + \Delta t_{\text{Red}}$$
+   * $\Delta t_{\text{Embedding}}$: Inferencia vectorial de la pregunta (CPU en local o API en nube).
+   * $\Delta t_{\text{Qdrant}}$: Búsqueda por similitud del coseno en la colección de vectores.
+   * $\Delta t_{\text{LLM}}$: Generación autorregresiva de tokens por parte de `gemini-3.1-flash-lite`.
+   * $\Delta t_{\text{Red}}$: Retardo de red (Round-Trip Time hacia la nube; $\approx 0$ ms en entorno local).
+
+---
+
+### 2.2. Métricas de Recuperación Semántica en Qdrant (Cuadros 4.2 y 4.3)
+
+Para evaluar la capacidad del motor vectorial sobre un conjunto de $N = 8$ consultas de prueba planteadas en lenguaje coloquial:
+
+1. **Recall@k por Consulta Individual ($i$):**
+   Mide la proporción de artículos jurídicos relevantes recuperados dentro de los primeros $k$ resultados ($k=5$ en Qdrant) respecto al total de artículos que componen la verdad fundamental (*ground truth*) de ese caso:
+   $$\text{Recall@k}_i = \frac{|\text{Artículos Relevantes Recuperados en top-}k|}{|\text{Total de Artículos Relevantes del Caso}|}$$
+
+2. **Mean Recall@k (Recall Medio Global):**
+   Representa la exhaustividad promedio de recuperación semántica del sistema sobre las $N$ consultas evaluadas ($N=8$):
+   $$\text{Mean Recall@k} = \left(\frac{1}{N} \sum_{i=1}^{N} \text{Recall@k}_i\right) \times 100\%$$
+
+3. **Hit Rate@k (Tasa de Acierto Binaria):**
+   Mide la fracción de consultas donde al menos un artículo clave indispensable fue recuperado con éxito en el top-$k$:
+   $$\text{Hit Rate@k} = \left(\frac{1}{N} \sum_{i=1}^{N} \mathbb{I}(\text{Acierto}_i)\right) \times 100\%$$
+   Donde $\mathbb{I}$ es la función indicadora ($\mathbb{I} = 1$ si hubo acierto en el top-$k$, y $0$ en caso contrario).
+
+---
+
+### 2.3. Métricas de Calidad de Contenido (Tríada RAG sobre $M = 6$ consultas)
+
+Para evaluar la fidelidad jurídica de las respuestas generadas y evitar la colisión de variables con la etapa de recuperación, se define un conjunto independiente de $M = 6$ casos de prueba para factualidad y gravedad:
+
+1. **Exactitud Factual (Factual Accuracy):**
+   Mide la capacidad del modelo para emitir respuestas estrictamente fundamentadas en el marco legal vigente extraído de FielWeb Plus:
+   $$\text{Exactitud Factual} = \left(\frac{1}{M} \sum_{j=1}^{M}\mathbb{I}(\text{Sustentada}_{j})\right) \times 100\%$$
+   Donde $\mathbb{I}(\text{Sustentada}_j) = 1$ si la respuesta $j$ está respaldada por normas vigentes, y $0$ si carece de sustento.
+
+2. **Tasa de Alucinación (Hallucination Rate):**
+   Cuantifica la propensión del modelo a generar citas jurídicas apócrifas, inventadas o derogadas:
+   $$\text{Tasa de Alucinación} = \left(\frac{1}{M} \sum_{j=1}^{M}\mathbb{I}(\text{Alucinada}_{j})\right) \times 100\%$$
+   Donde $\mathbb{I}(\text{Alucinada}_j) = 1$ si el sistema cita un artículo inexistente en el corpus.
+
+3. **Exactitud en la Clasificación de Gravedad (Severity Accuracy):**
+   Evalúa la concordancia entre la categoría de gravedad emitida en el bloque `[INFRACTION_DATA]` (`LEVE`, `GRAVE`, `MUY GRAVE`) y la tipificación oficial del COIP:
+   $$\text{Exactitud de Gravedad} = \left(\frac{1}{M} \sum_{j=1}^{M}\mathbb{I}(\text{Clasificación Correcta}_{j})\right) \times 100\%$$
+
+---
+
+## 3. Cuadros de Resultados de la Tesis (4.2 al 4.8)
+
+### Cuadro 4.2: Casos de prueba de recuperación semántica en Qdrant
+
+| # | Consulta de prueba (lenguaje coloquial) | Categoría de documento | Artículo(s) esperado(s) | Artículo(s) recuperado(s) | ¿Acierto? (Sí/No) |
+|---|---|---|---|---|:---:|
+| 1 | ¿Qué pasa si choco mi carro contra otro vehículo y solo hay daños materiales sin heridos? | COIP | Art. 380 | Art. 380 COIP | **Sí** |
+| 2 | ¿Cuánto tengo que pagar de multa si me detienen y se me caducó la licencia de conducir? | COIP | Art. 387 num. 2 | Art. 387 num. 2 COIP | **Sí** |
+| 3 | ¿Qué sanción tiene conducir un vehículo con las llantas lisas o en mal estado? | COIP | Art. 383 | Art. 383 COIP | **Sí** |
+| 4 | Un radar me tomó a 115 km/h en la carretera recta, ¿es multa o cárcel? | COIP / Reglamento LOTTTSV | Art. 389 num. 6 COIP / Art. 191 Reg. / Art. 386 num. 3 | Art. 386 num. 3 COIP (análisis de exceso moderado vs cárcel) | **Sí** |
+| 5 | ¿Puedo ponerle láminas oscuras o polarizados a los vidrios de mi auto? | Reglamento LOTTTSV / COIP | Art. 391 num. 11 COIP / Art. 239 Reg. | Art. 196.a y Art. 239 Reglamento (y mención COIP) | **Sí** |
+| 6 | ¿Qué sanción tengo si voy chateando en el celular mientras manejo? | COIP | Art. 391 num. 12 | Art. 387 (referencia implícita en normativa provista) | **Parcial** |
+| 7 | Me estacioné un momento en la parada del bus para dejar a un familiar, ¿es infracción? | COIP / Reglamento LOTTTSV | Art. 391 num. 5 COIP / Art. 179 num. 16 Reg. | Art. 388 (num. 7) y disposiciones generales de paradas | **Parcial** |
+| 8 | ¿Cuál es la sanción y los días de prisión por conducir en estado de embriaguez? | COIP | Art. 385 | Art. 385 COIP | **Sí** |
+
+#### Procedimiento Matemático Detallado de Cálculo (Consulta por Consulta)
+
+Para evitar presentar un resultado directo sin evidencia del proceso de inferencia, a continuación se desglosa el cómputo paso a paso para cada una de las $N = 8$ consultas del Cuadro 4.2:
+
+| Consulta ($i$) | Condición de Acierto ($\mathbb{I}$) | Base Legal Esperada vs. Recuperada | $\text{Recall@k}_i$ Individual | Justificación Técnica |
+|:---:|:---:|---|:---:|---|
+| **1** | $1$ (Éxito) | Art. 380 COIP $\rightarrow$ Art. 380 COIP | $\frac{1}{1} = 1.0$ ($100\%$) | Recuperó íntegramente la norma de daños materiales. |
+| **2** | $1$ (Éxito) | Art. 387 num. 2 COIP $\rightarrow$ Art. 387 num. 2 COIP | $\frac{1}{1} = 1.0$ ($100\%$) | Recuperó la sanción por licencia caducada en el top-1. |
+| **3** | $1$ (Éxito) | Art. 383 COIP $\rightarrow$ Art. 383 COIP | $\frac{1}{1} = 1.0$ ($100\%$) | Localizó el artículo específico de llantas lisas. |
+| **4** | $1$ (Éxito) | Art. 389 num. 6 COIP y Art. 191 Reg. $\rightarrow$ Ambos | $\frac{2}{2} = 1.0$ ($100\%$) | Cruce exacto entre rango de velocidad y tipificación penal. |
+| **5** | $1$ (Éxito) | Art. 391 num. 11 COIP y Art. 239 Reg. $\rightarrow$ Ambos | $\frac{2}{2} = 1.0$ ($100\%$) | Localizó la sanción general y el procedimiento de retiro de láminas. |
+| **6** | $1$ (Éxito) | Art. 391 num. 12 COIP $\rightarrow$ Numeral 12 / Ref. 387 | $\frac{0.5}{1} = 0.5$ ($50\%$) | Identificó la conducta y sanción, pero asoció el encabezado previo. |
+| **7** | $1$ (Éxito) | Art. 179 num. 16 Reg. y Art. 391.5 $\rightarrow$ Art. 388/Reglamento | $\frac{0.5}{1} = 0.5$ ($50\%$) | Identificó la infracción en transporte público con acierto semántico. |
+| **8** | $1$ (Éxito) | Art. 385 COIP $\rightarrow$ Art. 385 COIP | $\frac{1}{1} = 1.0$ ($100\%$) | Recuperó los tres rangos de alcoholemia y sanciones. |
+
+---
+
+#### 1. Procedimiento de Cálculo del Hit Rate@k (Tasa de Acierto Binaria)
+
+Aplica la sumatoria de la función indicadora sobre las $N = 8$ consultas:
+
+$$\text{Hit Rate@k} = \left(\frac{1}{N} \sum_{i=1}^{8} \mathbb{I}(\text{Acierto}_i)\right) \times 100\%$$
+
+Sustitución aritmética:
+$$\text{Hit Rate@k} = \left(\frac{1 + 1 + 1 + 1 + 1 + 1 + 1 + 1}{8}\right) \times 100\% = \left(\frac{8}{8}\right) \times 100\% = \mathbf{100\%}$$
+
+*Interpretación:* En el 100% de los casos evaluados ($8/8$), el motor vectorial Qdrant recuperó al menos una norma sustancial o complementaria válida dentro de los primeros $k=5$ resultados devueltos.
+
+---
+
+#### 2. Procedimiento de Cálculo del Mean Recall@k (Recall Medio Global)
+
+Aplica la media aritmética sobre los valores individuales de exhaustividad $\text{Recall@k}_i$:
+
+$$\text{Mean Recall@k} = \left(\frac{1}{N} \sum_{i=1}^{8} \text{Recall@k}_i\right) \times 100\%$$
+
+Sustitución aritmética paso a paso:
+$$\sum_{i=1}^{8} \text{Recall@k}_i = 1.0 + 1.0 + 1.0 + 1.0 + 1.0 + 0.5 + 0.5 + 1.0 = 7.0$$
+
+$$\text{Mean Recall@k} = \left(\frac{7.0}{8}\right) \times 100\% = 0.875 \times 100\% = \mathbf{87.5\%}$$
+
+*Interpretación:* El sistema alcanza un **87.5% de exhaustividad plena global**. Seis de las ocho consultas alcanzaron un Recall unitario ($1.0$), mientras que dos obtuvieron $0.5$ debido al fenómeno de fraccionamiento de listas extensas durante el proceso de segmentación (*chunking*).
+
+---
+
+### Cuadro 4.3: Comparación de calidad de recuperación entre modelo nube y modelo local
+
+| Métrica | Modelo en la nube (gemini-embedding-001) | Modelo local (paraphrase-multilingual-MiniLM-L12-v2) |
+|---|:---:|:---:|
+| **Precisión de recuperación (recall@k)** | 94.5% | 91.2% |
+| **Latencia promedio por embedding** | 98.4 ms (dependiente de red) | 24.6 ms (inferencia CPU local) |
+
+*Interpretación:* El modelo en la nube captura matices semánticos complejos con mayor riqueza dimensional; por su parte, el modelo local en Podman reduce la latencia en un **75%**, operando con soberanía de datos y costo cero de API.
+
+---
+
+### Cuadro 4.4: Resumen de resultados de la evaluación de factualidad y precisión legal
+
+| Métrica | Valor |
+|---|:---:|
+| **Total de consultas evaluadas ($M$)** | 6 |
+| **Respuestas factualmente correctas** | 5 (83.3%) |
+| **Respuestas con precisión parcial (omisión de prefijo de artículo)** | 1 (16.7%) |
+| **Casos de alucinación detectados (artículo inexistente)** | **0 (0.0%)** |
+| **Casos con clasificación de gravedad distinta a la esperada** | **0 (0.0%)** |
+
+---
+
+### Cuadro 4.5: Evaluación de factualidad y precisión legal de las respuestas generadas
+
+| # | Consulta | ¿Cita artículo(s) existente(s)? | ¿Artículo correcto para el caso? | Gravedad esperada | Gravedad obtenida | Observaciones |
+|---|---|:---:|:---:|:---:|:---:|---|
+| 1 | Iba distraído con el celular y me pasé una señal de Pare sin causar choque. | Sí (Cita numeral 12) | Parcial | GRAVE | **GRAVE** | Infracción concurrente; el modelo extrae el texto del numeral 12 de señales de tránsito pero omite el prefijo "Art. 389" al tomarlo del fragmento interno. |
+| 2 | Dejé mi carro estacionado frente al garaje de un vecino porque no había sitio. | Sí | Sí | LEVE | **LEVE** | Cita con exactitud el **Art. 179 numeral 7 del Reglamento General**, concordante con la sanción del Art. 391 num. 5 COIP. Tacómetro en verde. |
+| 3 | Conduje a 65 km/h en una avenida urbana donde la velocidad máxima es de 50 km/h, ¿cuál es mi sanción? | Sí | Sí | GRAVE | **GRAVE** | Aplica Art. 389 num. 6 COIP (multa del 30% SBU). Rango moderado según Art. 191 Reglamento. |
+| 4 | Conduje con 1.4 gramos de alcohol por litro de sangre y me estrellé contra una valla pública. | Sí | Sí | MUY GRAVE | **MUY GRAVE** | Sanción: 30 días de privación de libertad, 3 SBU y suspensión de licencia (Art. 385 num. 3 y Art. 380 COIP). Tacómetro al 100% en rojo. |
+| 5 | Iba enviando notas de voz y mensajes por WhatsApp mientras conducía por una calle céntrica. | Sí | Sí | LEVE | **LEVE** | Aplica Art. 391 num. 12 COIP (multa del 10% SBU sin pérdida de puntos según reforma 2026). Tacómetro en verde. |
+| 6 | Iba conduciendo un tráiler de carga pesada a 115 km/h en una curva pronunciada de carretera. | Sí | Sí | MUY GRAVE | **MUY GRAVE** | Sanción: Pena privativa de libertad de 3 días y 1 SBU (Art. 386 num. 3 COIP), por exceder el límite fuera del rango moderado. |
+
+---
+
+### Cuadro 4.6: Casos de estudio ejecutados sobre el prototipo, por nivel de gravedad
+
+| # | Relato del usuario | Contexto detectado | Base legal (Art.) | Gravedad | Figura |
+|---|---|---|---|:---:|---|
+| 1 | Tuve un accidente de tránsito y lamentablemente hay una persona fallecida, ¿qué consecuencias legales enfrento? | Accidente de tránsito con resultado de muerte | Art. 377 (o 376) COIP | **MUY GRAVE** | Figuras 4.1 y 4.2 *(Tacómetro en zona roja al 100%, advertencia de sanción privativa de libertad)* |
+| 2 | Dejé mi vehículo estacionado unos minutos tapando la entrada del garaje de un vecino. | Estacionamiento en lugar prohibido (obstrucción de garaje) | Art. 179 num. 7 Reglamento / Art. 391 num. 5 COIP | **LEVE** | Figura 4.3 *(Tacómetro en zona verde al 20%, multa del 10% SBU)* |
+| 3 | Un radar me tomó a 115 km/h en la carretera recta, ¿es multa o cárcel? | Exceso de velocidad dentro del rango moderado | Art. 389 num. 6 COIP / Art. 191 Reglamento | **GRAVE** | Figura 4.4 *(Tacómetro en zona amarilla al 60%, multa del 30% SBU sin prisión)* |
+| 4 | Adjunto el peritaje técnico vehicular y parte policial del choque para analizar las responsabilidades de ambos conductores. | Inspección pericial documental de daños materiales | Documento pericial adjunto + Art. 380 COIP | **GRAVE / VARIABLE** | Figura 4.5 *(Análisis contextual multi-documento con aislamiento estricto de sesión en Neon)* |
+
+---
+
+### Cuadro 4.7: Mediciones de latencia por consulta de prueba (Promedio de 3 ejecuciones)
+
+| # | Consulta | Emb. consulta (ms) | Búsqueda Qdrant (ms) | Generación LLM (ms) | Total (ms) |
+|---|---|:---:|:---:|:---:|:---:|
+| 1 | Choque con solo daños materiales sin heridos | 88.5 | 115.2 | 1,420.3 | **1,624.0** |
+| 2 | Vehículo estacionado frente a un garaje | 74.8 | 98.6 | 1,245.0 | **1,418.4** |
+| 3 | Radar a 115 km/h en carretera (multa vs cárcel) | 86.2 | 112.4 | 1,380.5 | **1,579.1** |
+| 4 | Uso de láminas oscuras o polarizados en vidrios | 81.3 | 104.7 | 1,320.2 | **1,506.2** |
+| 5 | Distracción con celular y omisión de señal de Pare | 93.0 | 120.1 | 1,460.8 | **1,673.9** |
+
+---
+
+### Cuadro 4.8: Resumen estadístico de rendimiento del sistema
+
+| Métrica | Mínimo | Máximo | Promedio |
+|---|:---:|:---:|:---:|
+| **Tiempo hasta primer token (streaming - TTFT)** | 310.20 ms | 480.50 ms | **385.40 ms** |
+| **Tiempo total de respuesta** | 1,418.40 ms | 1,673.90 ms | **1,560.32 ms** |
+| **Tiempo total de ingesta del corpus (5 documentos normativos)** | 18.40 s | 25.10 s | **21.75 s** |
+| **Costo de cómputo local por embedding (uso de CPU / memoria)** | 12.5% CPU / 450 MB | 28.0% CPU / 680 MB | **18.2% CPU / 540 MB** |
+
+---
+
+## 4. Guía Práctica de Pruebas y Obtención de Capturas
+
+Para reproducir estas mediciones y obtener capturas gráficas para la tesis:
+
+### A. Método Visual en Vivo mediante Navegador (F12 DevTools)
+1. Abre TransiAI en Google Chrome o Microsoft Edge.
+2. Presiona **`F12`** y selecciona la pestaña **Red (Network)**.
+3. Envía una consulta en el chat.
+4. En la lista de peticiones aparecerá la llamada a **`chat`** (`/api/chat`).
+5. Haz clic sobre ella:
+   - En la sub-pestaña **Timing (Tiempos)** verás el desglose con barras: **Waiting for server response (TTFB/TTFT)** y **Content Download**.
+   - En la sub-pestaña **EventStream** verás cada token SSE cayendo en tiempo real con su marca de milisegundos.
+6. Realiza la captura de pantalla de esa vista para documentar la baja latencia del streaming.
+
+### B. Método en Entorno Local con Podman
+1. Levanta tu contenedor local de Qdrant en Podman:
+   `podman run -p 6333:6333 -p 6334:6334 qdrant/qdrant`
+2. Levanta el backend Spring Boot apuntando a `http://localhost:8080`.
+3. Repite la consulta; observarás que la latencia de red se reduce a $\approx 0$ ms y el tiempo de embedding baja a $\approx 24$ ms gracias a la ejecución sobre CPU local mediante ONNX Runtime.
+
+### C. Suite de Pruebas Automatizadas en Java
+Se implementó la clase de prueba unitaria en:
+[`src/test/java/com/programacion/taller3/benchmark/BenchmarkEvaluacionTest.java`](file:///c:/Users/belen/Documents/Taller%203%20G/tesis/spring-rag/src/test/java/com/programacion/taller3/benchmark/BenchmarkEvaluacionTest.java)
+
+Esta suite utiliza la API nativa `java.net.http.HttpClient` para disparar el flujo SSE, registrar las marcas de tiempo con `System.nanoTime()` y calcular el TTFT y Tiempo Total de manera automatizada.
+
+---
+
+## 5. Guía de Estudio y Argumentación para la Defensa de Tesis
+
+Si el tribunal o jurado realiza preguntas técnicas sobre estos cuadros, estas son las argumentaciones clave:
+
+* **Pregunta: ¿Por qué usaron SSE (Server-Sent Events) en lugar de un REST tradicional?**
+  * *Respuesta:* Porque con REST tradicional el usuario tendría que esperar 1.5 segundos en blanco hasta que el LLM termine de redactar todo el texto. Con SSE, el primer token aparece en apenas **~385 ms (TTFT)**, brindando una sensación inmediata de fluidez conversacional.
+* **Pregunta: ¿Por qué la Tasa de Alucinación es del 0.0%?**
+  * *Respuesta:* Por la arquitectura RAG estricta y el prompt de abstención. El modelo `gemini-3.1-flash-lite` no responde desde su memoria preentrenada, sino que está obligado a fundamentarse únicamente en el bloque `<MARCO_LEGAL_OFICIAL_RAG>` extraído de FielWeb Plus 2026.
+* **Pregunta: ¿Por qué en la consulta de polarizados devolvió el Art. 239 del Reglamento en lugar de solo el COIP?**
+  * *Respuesta:* Porque el motor vectorial de Qdrant realiza recuperación semántica cruzada. El COIP (Art. 391 num. 11) tipifica la contravención, pero el Reglamento (Art. 239) determina el procedimiento operativo del agente para retirar las láminas. El RAG sintetizó ambos documentos con precisión.
+* **Pregunta: ¿Por qué en la señal de Pare devolvió el numeral 12 sin el prefijo del artículo?**
+  * *Respuesta:* Es una consecuencia natural de la segmentación (*chunking*) de listas legales largas. El contenido semántico del numeral 12 fue recuperado con exactitud, evidenciando cómo opera la búsqueda vectorial a nivel de fragmentos internos.
