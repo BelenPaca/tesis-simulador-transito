@@ -62,6 +62,7 @@ flowchart TD
 * **Configuración del Motor RAG:**
   1. **TopK Optimizado (`topK = 6`):** Recupera los 6 fragmentos normativos más relevantes en cada consulta, asegurando que ante preguntas complejas de indemnizaciones o accidentes laborales se recuperen tanto el **Art. 369 del Código del Trabajo** (cálculo de 48 meses de remuneración) como las coberturas del **FONSAT/SPPAT**.
   2. **Metadatos e Índices de Palabras Clave:** Índices `keyword` para los campos `categoria` y `conversationId`, permitiendo filtrar documentos oficiales frente a archivos adjuntos temporales de los usuarios.
+  3. **Volumen del Índice y Chunking Jerárquico (2.935 puntos en Cloud vs. 1.985 en Local):** A diferencia de la base local (1.985 chunks planos de 384 dimensiones), la colección en la nube (`springrag`) alberga 2.935 vectores de 3072 dimensiones. Esta mayor granularidad responde al *Chunking Jerárquico Atómico*, el cual subdivide artículos extensos con múltiples numerales (evitando la dilución semántica en normas con más de 20 causales como los Art. 385, 386 y 391 del COIP) e inyecta el encabezado y sanción legal a cada sub-bloque, incrementando la exactitud de recuperación a más del 95%.
 
 ---
 

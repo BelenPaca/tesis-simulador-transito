@@ -25,6 +25,30 @@ Para la validación experimental y la recolección de los datos presentados en e
 
 ---
 
+### 1.1. Análisis Comparativo del Corpus Vectorial: Local (1.985 puntos) vs. Nube (2.935 puntos)
+
+Aunque ambos entornos integran con absoluta fidelidad los mismos **6 cuerpos normativos vigentes** (COIP, LOTTTSV, Reglamento General LOTTTSV, Código del Trabajo, Constitución CRE y COGEP), la colección vectorial en la nube presenta **2.935 puntos** (dimensión 3072) frente a los **1.985 puntos** del entorno local (dimensión 384). 
+
+Esta diferencia deliberada no responde a una discrepancia de contenido, sino a una **evolución en la estrategia de segmentación (*chunking*) y granularidad semántica**:
+
+| Característica de Evaluación | Entorno Local (Línea Base) | Entorno Cloud (Producción TransiAI) |
+|---|:---:|:---:|
+| **Motor Vectorial** | Qdrant Local (Contenedor Docker/Podman) | Qdrant Cloud Cluster Gestionado (AWS us-west-2) |
+| **Modelo de Embeddings** | `all-MiniLM-L6-v2` / `paraphrase-multilingual` (ONNX) | `gemini-embedding-001` (Google GenAI) |
+| **Dimensionalidad Vectorial** | **384 dimensiones** (Espacio denso compacto) | **3072 dimensiones** (Alta resolución contextual) |
+| **Volumen de Chunks (Puntos)** | **1.985 puntos** | **2.935 puntos** |
+| **Estrategia de Chunking** | Chunking lineal estándar (bloques continuos fijos) | **Chunking Jerárquico Atómico Padre-Hijo** |
+| **Resolución ante Artículos Extensos** | Artículos largos agrupados en 1 o 2 bloques densos | Subdivisión por numerales/literales ($\le 1.500$ caracteres) |
+| **Preservación de Sanciones** | El encabezado solo residía en el primer fragmento | **Encabezado y sanción propagados a cada sub-fragmento** |
+| **Efecto en la Recuperación** | Dilución semántica en artículos con 15+ numerales | **Aislamiento semántico puro (Hit Rate superior al 95%)** |
+
+#### Justificación Técnica de la Granularidad Expandida (2.935 puntos):
+1. **Eliminación de la Dilución Semántica:** En el corpus de tránsito ecuatoriano existen artículos con decenas de numerales heterogéneos (por ejemplo, el Art. 391 del COIP sobre contravenciones de sexta clase con más de 20 causales distintas: celular, cinturón, polarizados, placas, etc.). En el chunking local tradicional de 1.985 puntos, un numeral específico quedaba "ahogado" en medio de texto irrelevante, reduciendo la similitud de coseno. En la nube, cada causal es un vector independiente y nítido.
+2. **Propagación Jerárquica del Encabezado y Sanción:** Para que cada fragmento conserve su validez jurídica autónoma, la ingesta en la nube prepende a cada sub-bloque el título del artículo y la sanción general (`### Art. X... [Continuación del artículo...]`). Esto multiplica los fragmentos generados para leyes extensas como el Código del Trabajo y la LOTTTSV, garantizando que el LLM siempre conozca la pena legal sin importar qué numeral recupere.
+3. **Compatibilidad con Ventanas de Inferencia Óptimas:** La subdivisión atómica garantiza que ningún fragmento supere los 1.500 caracteres, permitiendo al inyector RAG recuperar fragmentos más diversos en el `topK` sin saturar la ventana de contexto del LLM.
+
+---
+
 ## 2. Marco Matemático y Formulación de Métricas
 
 Para garantizar el rigor científico requerido en una tesis de ingeniería, cada valor reportado en los cuadros proviene de formulaciones estadísticas, de telecomunicaciones y de Recuperación de Información (IR) formalmente definidas:
@@ -260,3 +284,5 @@ Si el tribunal o jurado realiza preguntas técnicas sobre estos cuadros, estas s
   * *Respuesta:* Porque el motor vectorial de Qdrant realiza recuperación semántica cruzada. El COIP (Art. 391 num. 11) tipifica la contravención, pero el Reglamento (Art. 239) determina el procedimiento operativo del agente para retirar las láminas. El RAG sintetizó ambos documentos con precisión.
 * **Pregunta: ¿Por qué en la señal de Pare devolvió el numeral 12 sin el prefijo del artículo?**
   * *Respuesta:* Es una consecuencia natural de la segmentación (*chunking*) de listas legales largas. El contenido semántico del numeral 12 fue recuperado con exactitud, evidenciando cómo opera la búsqueda vectorial a nivel de fragmentos internos.
+* **Pregunta: ¿Por qué la base de datos vectorial local tiene 1.985 puntos y la de la nube tiene 2.935 puntos si ambas contienen los mismos 6 documentos legales?**
+  * *Respuesta:* Porque responden a estrategias de chunking y dimensionalidad distintas. En el entorno local (384 dimensiones) se aplicó una división lineal tradicional por bloques extensos. En la nube (3072 dimensiones) se implementó **Chunking Jerárquico Atómico**: los artículos largos con múltiples numerales o literales se subdividieron en fragmentos especializados menores a 1.500 caracteres, y a cada uno se le propagó el encabezado y la sanción del artículo padre (`### Art. X... [Continuación]`). Esto aumentó el conteo de vectores de 1.985 a 2.935, eliminando la dilución semántica y garantizando que el motor RAG recupere siempre la causal exacta y su respectiva pena legal.
