@@ -535,6 +535,19 @@
                 <!-- Modo Lectura Normal -->
                 <div v-if="editingMessageIdx !== idx" v-html="formatMessage(msg.content, msg.role)"></div>
 
+                <!-- Botón de reintento si hubo intermitencia de red -->
+                <div v-if="msg.isError && msg.retryPrompt && !isStreaming" class="retry-action-wrapper">
+                  <button type="button" class="btn-retry-chat" @click="retryMessage(msg.retryPrompt)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 2v6h-6"></path>
+                      <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+                      <path d="M3 22v-6h6"></path>
+                      <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+                    </svg>
+                    <span>Reintentar respuesta</span>
+                  </button>
+                </div>
+
                 <!-- Modo Edición In-Place (en el mismo mensaje del usuario) -->
                 <div v-else class="inplace-edit-wrapper">
                   <textarea
@@ -1658,10 +1671,19 @@ export default {
     function formatActivityTime(dateStr) {
       if (!dateStr) return 'Reciente';
       try {
-        const utcStr = dateStr.endsWith('Z') || dateStr.includes('+') ? dateStr : dateStr + 'Z';
-        const d = new Date(utcStr);
+        let d;
+        if (dateStr.includes('+') || dateStr.endsWith('Z') || dateStr.includes('-05:00')) {
+          d = new Date(dateStr);
+        } else {
+          d = new Date(dateStr + 'Z');
+        }
         if (isNaN(d.getTime())) return dateStr.substring(11, 16);
-        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        return d.toLocaleTimeString('es-EC', {
+          timeZone: 'America/Guayaquil',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        });
       } catch (e) {
         return dateStr.substring(11, 16);
       }
@@ -1786,14 +1808,18 @@ export default {
         } else {
           localMessages.value[convId].push({
             role: 'assistant',
-            content: '⚠️ No se pudo obtener una respuesta en este momento. Por favor reformula o vuelve a enviar tu consulta.'
+            content: '⚠️ No se pudo obtener una respuesta completa en este momento por una intermitencia de conexión. Puedes volver a intentarlo.',
+            isError: true,
+            retryPrompt: text
           });
         }
       } catch (e) {
         console.error(e);
         localMessages.value[convId].push({
           role: 'assistant',
-          content: '❌ Error al comunicarse con el servidor.'
+          content: '❌ Error de conexión temporal con el servidor.',
+          isError: true,
+          retryPrompt: text
         });
       } finally {
         streamingContent.value = '';
@@ -1802,6 +1828,19 @@ export default {
         await nextTick();
         scrollToLatestPrompt();
       }
+    }
+
+    async function retryMessage(promptText) {
+      if (!promptText || isStreaming.value) return;
+      const convId = activeConversationId.value;
+      if (!convId || !localMessages.value[convId]) return;
+
+      // Retirar el mensaje de error anterior para reintentar limpiamente
+      if (localMessages.value[convId].length > 0 && localMessages.value[convId][localMessages.value[convId].length - 1].role === 'assistant') {
+        localMessages.value[convId].pop();
+      }
+
+      await executeChatStream(promptText, convId, null);
     }
 
     async function sendMessage() {
@@ -2271,6 +2310,7 @@ export default {
       getInfractionData, getGravityClass, getNeedleAngle, formatMessage, getMessageLegalSources, getAnalyzedCount, toggleTheme,
       copiedMessageIdx, copyMessageText, editUserMessage,
       editingMessageIdx, editingMessageText, inplaceTextareaRef, startEditingUserMessage, cancelEditingUserMessage, adjustInplaceTextareaHeight, submitUpdatedMessage,
+      retryMessage,
       carrosLogo, clipIcon
     };
   }

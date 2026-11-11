@@ -3090,5 +3090,33 @@ textarea { flex: 1; border: none; background: transparent; resize: none; font-fa
   }
 }
 
+/* Botón de reintento estilo Gemini / TransiAI */
+.retry-action-wrapper {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+}
+
+.btn-retry-chat {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  background: rgba(13, 179, 123, 0.12);
+  border: 1px solid rgba(13, 179, 123, 0.35);
+  border-radius: 8px;
+  color: #0db37b;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-retry-chat:hover {
+  background: rgba(13, 179, 123, 0.22);
+  border-color: #0db37b;
+  transform: translateY(-1px);
+}
+
 
 
