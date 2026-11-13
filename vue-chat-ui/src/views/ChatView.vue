@@ -1547,26 +1547,8 @@ export default {
       return null;
     }
 
-    function isOutOfDomainOrNonTransitResponse(content) {
-      if (!content || typeof content !== 'string') return false;
-      const lower = content.toLowerCase();
-      return lower.includes('únicamente puedo responder') ||
-             lower.includes('unicamente puedo responder') ||
-             lower.includes('como asistente legal especializado') ||
-             lower.includes('no contiene información sobre infracciones') ||
-             lower.includes('no contiene informacion sobre infracciones') ||
-             lower.includes('no contiene información sobre normativa vial') ||
-             lower.includes('no contiene informacion sobre normativa vial') ||
-             lower.includes('no contiene infracciones') ||
-             lower.includes('no guarda relación con tránsito') ||
-             lower.includes('no guarda relacion con transito') ||
-             lower.includes('no corresponde a materia de tránsito') ||
-             lower.includes('no corresponde a materia de transito');
-    }
-
     function getMessageLegalSources(content) {
       if (!content || typeof content !== 'string') return [];
-      if (isOutOfDomainOrNonTransitResponse(content)) return [];
 
       // 1. Prioridad Absoluta: Fuentes reales recuperadas por Qdrant enviadas por el backend
       const sourcesMatch = content.match(/\[LEGAL_SOURCES\]([\s\S]*?)\[\/LEGAL_SOURCES\]/i);
@@ -1579,6 +1561,12 @@ export default {
         } catch (e) {
           console.warn("Error parsing real legal sources:", e);
         }
+      }
+
+      // Si el backend no envió [LEGAL_SOURCES] y el texto no cita artículos legales ni tiene bloque de infracciones,
+      // no emite pastillas de respaldo pasivo (saludos, cortesías o rechazos fuera de dominio)
+      if (!/(?:arts?\.?|art[ií]culos?)\s*\d+/i.test(content) && !content.includes('[INFRACTION_DATA]')) {
+        return [];
       }
 
       // 2. Respaldo pasivo por mención explícita del cuerpo legal (cero rangos numéricos inventados)
@@ -1650,7 +1638,9 @@ export default {
 
     function getAnalyzedCount(content) {
       if (!content || typeof content !== 'string') return 0;
-      if (isOutOfDomainOrNonTransitResponse(content)) return 0;
+      if (!/(?:arts?\.?|art[ií]culos?)\s*\d+/i.test(content) && !content.includes('[INFRACTION_DATA]') && !content.includes('[LEGAL_SOURCES]')) {
+        return 0;
+      }
       const cleanText = content
         .replace(/\[INFRACTION_DATA\][\s\S]*?\[\/INFRACTION_DATA\]/gi, '')
         .replace(/\[LEGAL_SOURCES\][\s\S]*?\[\/LEGAL_SOURCES\]/gi, '');
