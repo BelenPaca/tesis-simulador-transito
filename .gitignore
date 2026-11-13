@@ -54,4 +54,9 @@ spring-rag/src/main/resources/models/*.onnx
 
 ### Temporary Processed Inbound PDFs ###
 spring-rag/inbound/
+
+### Informes Privados de Tesis y Documentos de Grado ###
+INFORME_*.md
+image.png
+
 
