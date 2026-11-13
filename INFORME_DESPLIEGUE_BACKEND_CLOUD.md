@@ -112,19 +112,35 @@ flowchart TD
 
 ---
 
-## 3. Mejoras de Arquitectura Implementadas (Fase de Estabilización)
+## 3. Mejoras de Arquitectura Implementadas (Fase de Estabilización y RAG Puro)
 
-Durante esta fase se implementaron cuatro optimizaciones críticas para garantizar cero alucinaciones y alta precisión jurídica:
+Durante esta fase se implementaron optimizaciones críticas para garantizar cero heurísticas quemadas, cero alucinaciones y alta precisión jurídica en producción:
 
-1. **Memoria Conversacional y Continuidad Multi-Turno (`systemPrompt.st`):**
-   - Se reestructuró la jerarquía de instrucciones del prompt para eliminar la contradicción entre la cláusula de "ÚNICAMENTE la NORMATIVA" y el historial.
-   - Ante preguntas de seguimiento (*"¿qué dice el punto 1?"*, *"¿qué significa el numeral 2?"*), el modelo prioriza de forma directa el **HISTORIAL DE LA CONVERSACIÓN** de PostgreSQL, manteniendo la coherencia sin desorientarse ni alucinar con artículos aleatorios de Qdrant.
-2. **Análisis Completo de Documentos Adjuntos (`topK = 10`):**
-   - Se incrementó de 4 a 10 el número de fragmentos recuperados para documentos adjuntados por el usuario en `ChatController.java`, resolviendo el problema donde la IA solo analizaba una fracción superficial del documento subido.
-3. **Aislamiento Hermético por Usuario (`userId`):**
-   - En `FileProcessor.java` y `DocumentUploadController.java`, los fragmentos de documentos adjuntos ahora incorporan el metadato `userId`, blindando la privacidad para que ningún documento de un usuario sea accesible por otros.
-4. **Respaldo Estructurado de Citas Legales (`[LEGAL_SOURCES]`):**
-   - El backend serializa las leyes oficiales consultadas en un bloque JSON al pie de la respuesta, con deduplicación por cuerpo legal (`seenBadges`), eliminando la necesidad de adivinanzas o código quemado en el cliente web.
+1. **Descomposición por Ventanas Deslizantes Léxicas (*Overlapping Word Sliding Window*):**
+   - Para consultas compuestas con múltiples infracciones simultáneas (ej. velocidad, semáforo, celular y llantas lisas), el backend descompone la consulta en sub-ventanas léxicas de 12 palabras con solapamiento de 4 palabras ($stride = 8$), ejecutando hasta 5 búsquedas concurrentes.
+   - **Garantía de Ventana de Cola (*Tail Guarantee*):** Se asegura matemáticamente que la última ventana contenga siempre las palabras finales de la oración, permitiendo que infracciones redactadas al cierre de la consulta (como las *llantas lisas* del **Art. 383 COIP**, sancionadas con 5 a 15 días de cárcel) sean recuperadas con 100% de efectividad.
+
+2. **Memoria Conversacional y Continuidad Multi-Turno (`systemPrompt.st` + Neon):**
+   - Se reestructuró la jerarquía de instrucciones del prompt para armonizar la recuperación legal con la memoria histórica.
+   - Ante preguntas de seguimiento (*"¿qué dice el punto 1?"*, *"¿qué significa el numeral 2?"*, o consultas acumulativas de alcoholemia sobre un caso previo), el modelo prioriza de forma directa el **HISTORIAL DE LA CONVERSACIÓN** de PostgreSQL Neon.
+   - **Contextualización de Consultas Breves:** Las preguntas de seguimiento de menos de 80 caracteres unen el contexto del turno anterior del usuario al generar el embedding de búsqueda, evitando desorientaciones en Qdrant.
+
+3. **Ingesta y Recuperación Híbrida de Archivos Adjuntos (`topK = 15` a `40`):**
+   - Se eliminaron las restricciones estáticas de longitud de texto ($< 25$ caracteres) que truncaban la búsqueda de archivos.
+   - La recuperación en Qdrant se ejecuta de manera híbrida y en cascada: filtro exacto por metadato de archivo, búsqueda semántica combinando nombre de archivo, denominación limpia y pregunta del usuario, y respaldo directo por nombre del archivo en caso de consultas abstractas.
+   - Se expandió el `topK` para cubrir expedientes e informes periciales completos de hasta 15 páginas.
+
+4. **Puente Semántico de Hechos Periciales (*Fact Bridging*):**
+   - Cuando el usuario adjunta un informe técnico pericial (ej. SIAT) y solicita un dictamen sobre sanciones aplicables, el backend extrae automáticamente los hechos fácticos (magnitudes de velocidad, tasas de alcoholemia, días de incapacidad médica y montos de daños) y ejecuta una búsqueda cruzada sobre el corpus legal.
+   - Esto permite conectar los hechos del peritaje con normas penales de alta gravedad como el **Art. 379 del COIP** (*lesiones causadas bajo efectos del alcohol*), activando el velocímetro en nivel **MUY GRAVE** con total precisión.
+
+5. **Filtrado Adaptativo de Documentos Ajenos y Descarte Limpio:**
+   - Si el usuario adjunta un documento no vial (ej. listas de compras o cotizaciones de eventos) y pregunta de qué trata, el umbral de similitud legal sube automáticamente a $0.55$, impidiendo que el motor vectorial recupere normas inaplicables (como el Art. 216 del COGEP sobre documentos privados).
+   - El sistema resume el contenido con fidelidad y aclara amablemente que el documento no corresponde a materia de tránsito ni contiene infracciones, sin inventar delitos ni mostrar el velocímetro.
+
+6. **Supresión Reactiva de Fuentes Legales y Pastillas (`[LEGAL_SOURCES]`):**
+   - La emisión del bloque de fuentes legales se difiere mediante `Flux.defer()` hasta que la respuesta de Gemini haya finalizado.
+   - Si el asistente emite una respuesta de rechazo por estar fuera de dominio (ej. preguntas de cocina, medicina o videojuegos) o descarta un documento ajeno, se cancela la emisión de fuentes legales, impidiendo la visualización de pastillas fantasma en la interfaz.
 
 ---
 
@@ -145,7 +161,7 @@ Durante esta fase se implementaron cuatro optimizaciones críticas para garantiz
 
 ---
 
-## 4. Estado de Verificación en Vivo
+## 5. Estado de Verificación en Vivo
 
 1. **Salud del Sistema (`/actuator/health`):**
    ```json

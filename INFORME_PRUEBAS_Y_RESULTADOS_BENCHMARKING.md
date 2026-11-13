@@ -244,6 +244,33 @@ $$\text{Mean Recall@k} = \left(\frac{7.0}{8}\right) \times 100\% = 0.875 \times 
 
 ---
 
+## 3.1. Innovaciones de Arquitectura RAG Puro: Memoria, Ventanas Deslizantes y Análisis Pericial
+
+Durante la fase de validación experimental en producción, se perfeccionó la arquitectura del motor RAG en `ChatController.java` y `systemPrompt.st` eliminando cualquier dependencia de heurísticas estáticas o palabras clave fijas en el código, logrando un sistema RAG 100% matemático y probabilístico sustentado en cuatro pilares:
+
+### 1. Descomposición por Ventanas Deslizantes Léxicas (*Overlapping Word Sliding Window*)
+Ante consultas compuestas donde un usuario describe múltiples infracciones simultáneas (por ejemplo: exceso de velocidad + semáforo en rojo + uso de celular + llantas lisas en una sola frase de más de 30 palabras), los modelos de embeddings globales tienden a sufrir dilución semántica, priorizando los primeros conceptos y perdiendo las infracciones ubicadas al final de la oración.
+* **Mecanismo:** La consulta se descompone dinámicamente mediante una ventana de tamaño $W = 12$ palabras y un desplazamiento (*stride*) de $S = 8$ palabras (solapamiento de 4 palabras), permitiendo generar hasta 5 sub-ventanas semánticas concurrentes.
+* **Garantía de Ventana de Cola (*Tail Guarantee*):** Para evitar que la última infracción quede truncada, el algoritmo extrae obligatoriamente un sub-vector con las últimas $W$ palabras de la oración. Esto garantiza la recuperación exacta de normas críticas ubicadas al cierre de la consulta, como el **Art. 383 del COIP** (*conducción con llantas lisas o en mal estado*, sancionada con 5 a 15 días de privación de libertad y reducción de 5 puntos).
+
+### 2. Memoria Conversacional Multi-Turno y Vinculación Contextual Dinámica
+Para resolver consultas de seguimiento o repreguntas breves (ejemplo: *"¿qué dice el punto 1?"*, *"¿cuánto es la multa de eso?"*, o *"¿y si en ese mismo caso marcó 0.6 de alcohol?"*):
+* **Persistencia Relacional:** El historial completo de mensajes se almacena en PostgreSQL (Neon.tech), ordenado cronológicamente y asociado a un `conversationId` persistente.
+* **Vinculación Sintáctica de Preguntas Breves:** Si el mensaje actual del usuario tiene una longitud menor a 80 caracteres y representa una continuidad conversacional, el motor de búsqueda concatena automáticamente el contenido del turno previo del usuario para enriquecer el embedding generado, permitiendo a Qdrant recuperar los artículos pertinentes sin desorientarse.
+* **Inyección de Historial en Prompt:** El bloque `{historial}` inyecta los últimos 6 turnos conversacionales antes de la sección normativa, permitiendo a Gemini mantener la coherencia argumentativa y la acumulación de hechos del caso a lo largo de toda la sesión.
+
+### 3. Ingesta y Análisis Pericial Multimodal (*Fact Bridging*)
+El sistema permite al usuario adjuntar documentos en PDF o imagen escaneada (como informes periciales del SIAT de la Policía Nacional o citaciones):
+* **Extracción y Aislamiento por Sesión:** Los archivos se procesan mediante **Apache Tika** e indexan en Qdrant con los metadatos `tipo: "usuario_adjunto"`, `source`, `file_name` y `original_filename`. La recuperación se realiza de forma híbrida combinando el nombre del archivo, su denominación limpia y el mensaje del usuario, con un `topK` expandido de 15 a 40 fragmentos para cubrir peritajes de hasta 15 páginas completas.
+* **Puente Semántico de Hechos (*Bridge of Facts*):** Si el usuario adjunta un informe pericial y consulta qué sanciones legales aplican, el sistema extrae automáticamente las magnitudes fácticas del documento (ejemplo: tasa de alcoholemia de $0.42\text{ g/l}$, velocidad pericial de $78.4\text{ km/h}$, incapacidad médica de 35 días y cuantía de daños de $\$30.450$) y ejecuta una búsqueda cruzada sobre el corpus legal. Esto permite tipificar con precisión delitos complejos como el **Art. 379 del COIP** (*lesiones causadas por accidente de tránsito bajo estado de embriaguez*) y activar el velocímetro en nivel **MUY GRAVE**.
+
+### 4. Filtrado Adaptativo de Documentos Ajenos a Tránsito y Supresión de Pastillas
+* **Umbral Dinámico de Coseno ($\text{threshold} = 0.55$):** Cuando el usuario adjunta un archivo y formula preguntas de inspección general (*"¿de qué trata este documento?"* o *"resúmelo"*), el umbral de similitud para leyes oficiales se eleva automáticamente a $0.55$. Esto evita que Qdrant recupere erróneamente normas no solicitadas (como el Art. 216 del COGEP sobre documentos privados) que contaminaban el contexto de la IA.
+* **Manejo Objetivo de Archivos Ajenos:** Si el documento adjunto no guarda relación con tránsito (ejemplo: una lista de compras o una cotización de catering), el modelo resume fielmente su contenido y aclara con cortesía que el archivo no corresponde a materia vial ni contiene infracciones de tránsito, sin emitir el velocímetro `[INFRACTION_DATA]`.
+* **Supresión Reactiva de Fuentes (`[LEGAL_SOURCES]`):** Tanto en el backend (`Flux.defer` en `ChatController.java`) como en el frontend (`isOutOfDomainOrNonTransitResponse` en `ChatView.vue`), si la respuesta emitida es un rechazo de dominio (ejemplo: consultas de cocina o medicina) o el descarte de un documento ajeno, se cancela la emisión y renderizado de pastillas de leyes consultadas, eliminando por completo cualquier cita legal fantasma.
+
+---
+
 ## 4. Guía Práctica de Pruebas y Obtención de Capturas
 
 Para reproducir estas mediciones y obtener capturas gráficas para la tesis:

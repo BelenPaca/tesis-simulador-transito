@@ -86,7 +86,7 @@ public class CorsConfig {
 
 ---
 
-## 6. Diagrama de Secuencia del Flujo Integrado
+## 6. Diagrama de Secuencia del Flujo Integrado RAG Puro
 
 ```mermaid
 sequenceDiagram
@@ -94,28 +94,43 @@ sequenceDiagram
     actor Usuario as Conductor / Estudiante
     participant CF as Cloudflare (Frontend Vue 3)
     participant RN as Render (Spring Boot 4)
-    participant QD as Qdrant Cloud (Vectores)
     participant NN as Neon DB (PostgreSQL 18)
-    participant AI as Google GenAI (Gemini)
+    participant QD as Qdrant Cloud (Vectores)
+    participant AI as Google GenAI (Gemini 3.1 Flash Lite)
 
-    Usuario->>CF: Escribe consulta sobre infracción o norma de tránsito
-    CF->>RN: POST /api/chat (Mensaje + ID de Conversación)
+    Usuario->>CF: Escribe consulta (o adjunta peritaje/documento)
+    CF->>RN: POST /api/chat (Mensaje, ConversationId, AttachedFileName)
     
-    par Persistencia y Búsqueda Vectorial
-        RN->>NN: Guarda mensaje del usuario en tabla chat_messages
-        RN->>QD: Búsqueda por similitud de coseno (k=6) sobre leyes indexadas
+    RN->>NN: 1. Recupera historial previo de turnos
+    RN->>NN: 2. Guarda mensaje actual del usuario y registra archivo adjunto
+    
+    par Recuperación Híbrida y Descomposición de Consulta
+        RN->>QD: Búsqueda de Chunks del documento adjunto (topK = 15..40)
+        RN->>QD: Búsqueda de Leyes Oficiales mediante Ventanas Deslizantes (W=12, S=8, hasta 5 sub-queries)
     end
     
-    QD-->>RN: Fragmentos normativos relevantes
-    RN->>AI: Prompt enriquecido (Instrucción de Sistema + Normativa + Pregunta)
+    opt Puente Semántico de Hechos Periciales (Fact Bridging)
+        RN->>QD: Búsqueda cruzada usando hechos del peritaje (velocidad, alcohol, días de incapacidad)
+    end
     
-    loop Streaming de Tokens
+    QD-->>RN: Fragmentos normativos y del documento deduplicados
+    RN->>AI: Prompt enriquecido ({historial} + <DOCUMENTOS_DEL_CASO_USUARIO> + <MARCO_LEGAL_OFICIAL_RAG> + mensaje)
+    
+    loop Streaming de Tokens en Tiempo Real
         AI-->>RN: Token de respuesta generado
-        RN-->>CF: Server-Sent Event: data (Base64)
-        CF-->>Usuario: Renderizado visual en tiempo real (efecto mecanografía)
+        RN-->>CF: Server-Sent Event: event:token (Base64)
+        CF-->>Usuario: Renderizado progresivo en pantalla
     end
     
-    RN->>NN: Guarda respuesta completa del asistente en Neon DB
+    alt Respuesta válida de análisis legal
+        RN-->>CF: SSE event:token con bloque [LEGAL_SOURCES] (badges, títulos y extractos)
+        CF-->>Usuario: Mapeo de pastillas por párrafo y widget velocímetro [INFRACTION_DATA]
+    else Respuesta de rechazo fuera de dominio o documento ajeno no vial
+        Note over RN,CF: Supresión reactiva de pastillas (cero citas legales fantasma)
+    end
+    
+    RN-->>CF: SSE event:done ([DONE])
+    RN->>NN: Guarda respuesta final del asistente en PostgreSQL Neon
 ```
 
 ---

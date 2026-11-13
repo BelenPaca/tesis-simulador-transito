@@ -6,11 +6,13 @@
 
 ## 🌟 Características Principales
 
-- ** Asesoría Legal Adaptativa:** Adapta su vocabulario de forma empática para usuarios cotidianos (citando artículos de forma clara) o técnico-jurídica para profesionales del derecho.
-- **🚨 Analizador Inteligente de Infracciones:** Detecta incidentes de tránsito en la conversación y genera una respuesta estructurada categorizando la gravedad (**LEVE**, **GRAVE**, **MUY GRAVE**), base legal, consecuencias, pérdida de puntos y recomendaciones.
-- **💬 Interfaz Web Interactiva:** Desarrollada en Vue 3 con diseño moderno, soporte para modo oscuro/claro, formateo completo de Markdown y renderizado de tarjetas de infracción.
-- **📜 Historial Multi-Conversación:** Almacenamiento persistente en base de datos de las consultas previas para reanudar o gestionar chats guardados.
-- **🔍 Búsqueda Semántica Vectorial:** Recuperación precisa del contexto legal utilizando vectores guardados en Qdrant con embeddings locales en formato ONNX.
+- **⚖️ Asesoría Legal Adaptativa y RAG Puro:** Basado en un motor RAG 100% dinámico y probabilístico (sin palabras quemadas ni listas estáticas en código), contrastando consultas ciudadanas frente al COIP, LOTTTSV, Reglamento General, Código del Trabajo, Constitución y COGEP.
+- **🪟 Descomposición por Ventanas Deslizantes Léxicas:** Divide consultas compuestas con múltiples infracciones mediante ventanas solapadas ($W=12$, $S=8$) con garantía de ventana final de cola, recuperando todas las conductas concurrentes (ej. exceso de velocidad, semáforo en rojo, celular y llantas lisas según el Art. 383 del COIP).
+- **🧠 Memoria Conversacional Multi-Turno:** Mantiene el hilo y acumulación de hechos a través de múltiples turnos en PostgreSQL (Neon), contextualizando repreguntas breves de seguimiento.
+- **📄 Análisis Pericial Multimodal e Informes Técnicos:** Ingesta de documentos PDF escaneados o informes técnicos periciales (SIAT de la Policía Nacional) vía Apache Tika, con **Puente de Hechos (*Fact Bridging*)** para conectar datos técnicos (velocidades, alcoholemia, días de incapacidad) con delitos de tránsito con lesiones (**Art. 379 COIP**).
+- **🛡️ Blindaje de Dominio y Filtrado Adaptativo:** Si el usuario sube un archivo ajeno a tránsito (ej. lista de compras), la IA lo resume con fidelidad y aclara amablemente que no contiene infracciones viales sin alucinar normas del COGEP. Asimismo, declina cortésmente preguntas fuera de dominio (ej. recetas de cocina) y suprime reactivamente cualquier pastilla de leyes fantasma.
+- **🚨 Analizador Inteligente de Infracciones:** Genera automáticamente el bloque estructurado `[INFRACTION_DATA]` proyectando el velocímetro en tres niveles (**LEVE**, **GRAVE**, **MUY GRAVE**), base legal aplicable, consecuencias, puntos de licencia y recomendaciones.
+- **💬 Interfaz Web Interactiva en Vue 3:** Transmisión fluida por Server-Sent Events (SSE) con citas legales interactivas (`[LEGAL_SOURCES]`), tooltips dinámicos con extractos de ley, modo oscuro/claro y diseño adaptativo.
 
 ---
 
