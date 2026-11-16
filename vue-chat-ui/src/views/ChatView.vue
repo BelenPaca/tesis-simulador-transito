@@ -9,8 +9,10 @@
           <h3>¿Eliminar conversación?</h3>
           <p>Esta acción no se puede deshacer y se eliminará esta consulta del historial.</p>
           <div class="modal-actions">
-            <button class="btn-cancel" @click="showDeleteModal = false">Cancelar</button>
-            <button class="btn-confirm" @click="confirmDelete">Sí, eliminar</button>
+            <button class="btn-cancel" :disabled="isDeletingSingle" @click="showDeleteModal = false">Cancelar</button>
+            <button class="btn-confirm" :disabled="isDeletingSingle" @click="confirmDelete">
+              {{ isDeletingSingle ? 'Eliminando...' : 'Sí, eliminar' }}
+            </button>
           </div>
         </div>
       </div>
@@ -26,7 +28,7 @@
           <div class="modal-actions">
             <button class="btn-cancel" :disabled="isClearingHistory" @click="showConfirmClearAllModal = false">Cancelar</button>
             <button class="btn-confirm" :disabled="isClearingHistory" @click="confirmClearAllHistory">
-              {{ isClearingHistory ? 'Borrando...' : 'Sí, borrar todo' }}
+              {{ isClearingHistory ? 'Eliminando historial...' : 'Sí, borrar todo' }}
             </button>
           </div>
         </div>
@@ -72,19 +74,23 @@
               <div v-if="allConvsList.length === 0" style="text-align: center; color: var(--text-secondary); padding: 20px; font-size: 13px;">
                 No hay actividad reciente registrada en la vista.
               </div>
-              <div v-for="conv in allConvsList" :key="conv.id" class="activity-item">
+              <div v-for="conv in allConvsList" :key="conv.id" class="activity-item" :class="{ 'is-deleting-item': deletingConvId === conv.id }">
                 <div class="activity-item-header">
                   <span style="font-size: 12px; color: #0db37b; font-weight: 600;">TransiAI</span>
                   <div class="has-custom-tooltip">
-                    <button class="activity-del-btn" @click.stop="deleteActivityConversation(conv.id)" aria-label="Eliminar consulta">
-                      ✕
+                    <button class="activity-del-btn" :disabled="deletingConvId === conv.id" @click.stop="deleteActivityConversation(conv.id)" aria-label="Eliminar consulta">
+                      <span v-if="deletingConvId === conv.id" class="deleting-spinner-mini"></span>
+                      <span v-else>✕</span>
                     </button>
                     <div class="custom-tooltip-pill tooltip-left">
-                      Eliminar consulta
+                      {{ deletingConvId === conv.id ? 'Eliminando...' : 'Eliminar consulta' }}
                     </div>
                   </div>
                 </div>
-                <div class="activity-item-query">{{ conv.title || 'Consulta de tránsito' }}</div>
+                <div class="activity-item-query">
+                  <span v-if="deletingConvId === conv.id" class="deleting-tag">Eliminando...</span>
+                  {{ conv.title || 'Consulta de tránsito' }}
+                </div>
                 <div class="activity-item-footer">
                   <span>🕒 {{ formatActivityTime(conv.createdAt) }}</span>
                   <span>•</span>
@@ -299,7 +305,7 @@
     </transition>
 
     <!-- ══════════ LEFT COLUMN (Sidebar) ══════════ -->
-    <aside class="sidebar" :class="{ 'mobile-open': isMobileSidebarOpen }">
+    <aside class="sidebar" :class="{ 'mobile-open': isMobileSidebarOpen, 'is-collapsed': isSidebarCollapsed }">
       <div class="brand-header">
         <div class="brand-header-info" @click="goToHome" style="cursor: pointer;">
           <div class="has-custom-tooltip">
@@ -335,22 +341,25 @@
           </div>
           <div v-for="conv in conversations" :key="conv.id"
                class="conv-item"
-               :class="{ active: conv.id === activeConversationId }"
+               :class="{ active: conv.id === activeConversationId, 'is-deleting-item': deletingConvId === conv.id }"
                @click="selectConversation(conv.id)">
             <span class="conv-title"
                   @mouseenter="onConvMouseEnter($event, conv.title)"
                   @mouseleave="onConvMouseLeave">
+              <span v-if="deletingConvId === conv.id" class="deleting-tag">Eliminando...</span>
               {{ conv.title || 'Consulta de tránsito' }}
             </span>
             <div class="has-custom-tooltip">
               <button class="conv-del-btn"
+                      :disabled="deletingConvId === conv.id"
                       @click.stop="deleteSidebarConversation(conv.id)"
                       @mouseenter="onConvMouseLeave"
                       aria-label="Eliminar consulta">
-                ✕
+                <span v-if="deletingConvId === conv.id" class="deleting-spinner-mini"></span>
+                <span v-else>✕</span>
               </button>
               <div class="custom-tooltip-pill tooltip-top align-right">
-                Eliminar de recientes
+                {{ deletingConvId === conv.id ? 'Eliminando...' : 'Eliminar de recientes' }}
               </div>
             </div>
           </div>
@@ -397,12 +406,6 @@
                 <span class="menu-label">Información del Modelo</span>
               </div>
 
-              <!-- Item 4: Marco Legal -->
-              <div class="gemini-menu-item" @click="openLegalModal">
-                <span class="menu-icon">⚖️</span>
-                <span class="menu-label">Marco Legal de Tránsito</span>
-              </div>
-
               <div class="gemini-menu-divider"></div>
 
               <!-- Item 5: Ubicación detectada dinámicamente -->
@@ -447,10 +450,12 @@
     <main class="main-content">
       <div class="top-bar">
         <div class="top-bar-left">
-          <button class="mobile-nav-toggle" @click="isMobileSidebarOpen = true" title="Abrir menú">
-            <span class="hamburger-bar"></span>
-            <span class="hamburger-bar"></span>
-            <span class="hamburger-bar"></span>
+          <button class="sidebar-toggle-btn" @click="toggleSidebar" title="Mostrar/ocultar menú">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
           </button>
           <div class="mobile-brand-info" @click="goToHome" title="Ir al Inicio">
             <img :src="carrosLogo" alt="Logo" class="mobile-brand-logo" />
@@ -459,10 +464,22 @@
         </div>
 
         <div class="top-bar-right">
-          <button class="mobile-widgets-toggle" @click="isMobileWidgetsOpen = true" title="Ver clima y tiempos de viaje">
-            <span style="font-size: 15px;">🌤️</span>
-            <span class="mobile-widgets-label">Rutas & Clima</span>
+          <!-- Píldora de Clima Compacta (abre panel derecho) -->
+          <button class="header-pill-btn weather-pill" @click="toggleRightPanel('weather')" title="Ver clima y estado vial">
+            <span class="weather-pill-icon">{{ weatherCondition.emoji || '⛅' }}</span>
+            <span v-if="weatherData" class="weather-pill-temp">{{ Math.round(weatherData.temperature) }}°C</span>
+            <span class="weather-pill-loc">{{ weatherLocationName }}</span>
           </button>
+
+          <!-- Botón de Normativa Oficial con 6 Enlaces (abre panel derecho) -->
+          <button class="header-pill-btn legal-pill" @click="toggleRightPanel('legal')" title="Consultar Normativa Oficial Vigente">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </svg>
+            <span class="legal-pill-label">Normativa Oficial</span>
+          </button>
+
           <!-- Si NO ha iniciado sesión: Botón Iniciar sesión con estilo TransiAI -->
           <div v-if="!currentUser" class="header-auth-container">
             <button class="btn-login-header" @click="openLoginModal">
@@ -500,21 +517,43 @@
         <div v-if="currentMessages.length === 0 && !isStreaming" class="welcome-container" :class="{ 'chat-reset-flash': isResettingChat }">
           <div class="welcome-banner">
             <div class="welcome-text">
-              <h2>Hola, estoy aquí para <span>ayudarte</span></h2>
-              <p>con información de tránsito en tiempo real</p>
+              <h2>¡Bienvenido a <span>TransiAI</span>, tu guía legal de tránsito!</h2>
+              <p>Realiza consultas normativas, tipifica infracciones y analiza informes periciales con base en la legislación ecuatoriana vigente.</p>
             </div>
-            <div class="welcome-robot">🤖</div>
+            <div class="welcome-robot">
+              <img :src="robotLogo" alt="Robot TransiAI" class="robot-avatar-img" />
+            </div>
           </div>
           
           <div class="suggestions-container">
-            <button class="sug-btn sug-blue" @click="sendSuggestion(suggestedQuestions[0])">
-              <span class="sug-icon">⏱️</span><span class="sug-text">{{ suggestedQuestions[0] }}</span><span class="sug-arrow">></span>
+            <button class="sug-btn sug-blue" @click="onSuggestionClick(0)">
+              <span class="sug-icon">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              </span>
+              <span class="sug-text">{{ suggestedQuestions[0] }}</span>
+              <span class="sug-arrow">></span>
             </button>
-            <button class="sug-btn sug-green" @click="sendSuggestion(suggestedQuestions[1])">
-              <span class="sug-icon">🪪</span><span class="sug-text">{{ suggestedQuestions[1] }}</span><span class="sug-arrow">></span>
+            <button class="sug-btn sug-green" @click="onSuggestionClick(1)">
+              <span class="sug-icon">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+              </span>
+              <span class="sug-text">{{ suggestedQuestions[1] }}</span>
+              <span class="sug-arrow">></span>
             </button>
-            <button class="sug-btn sug-purple" @click="sendSuggestion(suggestedQuestions[2])">
-              <span class="sug-icon">⚠️</span><span class="sug-text">{{ suggestedQuestions[2] }}</span><span class="sug-arrow">></span>
+            <button class="sug-btn sug-purple" @click="onSuggestionClick(2)">
+              <span class="sug-icon">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                </svg>
+              </span>
+              <span class="sug-text">{{ suggestedQuestions[2] }}</span>
+              <span class="sug-arrow">></span>
             </button>
           </div>
         </div>
@@ -787,96 +826,137 @@
       </div>
     </main>
 
-    <!-- ══════════ RIGHT PANEL (TOOLS) ══════════ -->
-    <aside class="right-panel" :class="{ 'mobile-open': isMobileWidgetsOpen }">
-      <div class="mobile-panel-header">
-        <div class="mobile-panel-title">
-          <span>🌤️</span>
-          <h3>Rutas y Clima</h3>
+    <!-- ══════════ RIGHT PANEL (SLIDE-OVER DRAWER) ══════════ -->
+    <aside class="right-panel" :class="{ 'is-open': isRightPanelOpen }">
+      <div class="right-panel-header">
+        <div class="right-panel-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+            <path d="M2 17l10 5 10-5"></path>
+            <path d="M2 12l10 5 10-5"></path>
+          </svg>
+          <h3>Información y Normativa</h3>
         </div>
-        <button class="mobile-drawer-close-btn panel-close" @click="isMobileWidgetsOpen = false" title="Cerrar panel">✕</button>
-      </div>
-      <!-- Weather Widget (Detección dinámica en todo Ecuador) -->
-      <div class="widget-card weather">
-        <div class="widget-title-row">
-          <div class="widget-title-text">
-            <span>Clima</span>
-            <span style="color: #6ee7b7; font-size: 30px;">●</span>
-          </div>
-        </div>
-
-        <div class="weather-info-box" v-if="weatherData && !isLocatingWeather">
-          <div class="weather-top-row">
-            <span class="weather-big-emoji">{{ weatherCondition.emoji }}</span>
-            <div class="weather-temp-col">
-              <span class="weather-temp-num">{{ Math.round(weatherData.temperature) }}°C</span>
-              <span class="weather-cond-label">{{ weatherCondition.label }}</span>
-            </div>
-          </div>
-          <div class="weather-details-row">
-            <div class="weather-detail-item weather-loc-interactive" @click="fetchWeather" title="Clic para actualizar ubicación y clima">
-              <span class="loc-pin-icon" :class="{ 'spin-icon': isLocatingWeather }">📍</span>
-              <strong>{{ weatherLocationName }}</strong>
-            </div>
-            <div class="weather-detail-item">
-              <span class="weather-wind-icon">💨</span>
-              <span>Viento: <strong>{{ weatherData.windspeed }} km/h</strong></span>
-            </div>
-          </div>
-        </div>
-
-        <div v-else-if="isLocatingWeather" class="weather-loading">
-          ⏳ Detectando ubicación y consultando clima...
-        </div>
-
-        <div v-else class="weather-loading">
-          ⚠️ No se pudo cargar el clima.
-          <button @click="fetchWeather" class="retry-weather-btn">Reintentar</button>
-        </div>
+        <button class="panel-close-btn" @click="closeRightPanel" title="Cerrar panel">✕</button>
       </div>
 
-      <!-- Rutas y Navegación (Tiempos de Viaje TomTom en Vivo) -->
-      <div class="widget-card">
-        <div class="widget-title">
-          Tiempos de Viaje
-          <span class="see-all">En vivo (TomTom)</span>
-        </div>
-        <div class="widget-list" v-if="!isLoadingRoutes && routeEstimates.length > 0">
-          <a v-for="(route, idx) in routeEstimates" :key="idx"
-             :href="route.mapsUrl" target="_blank"
-             class="widget-list-item"
-             :class="{ 'border-none': idx === routeEstimates.length - 1 }"
-             style="text-decoration: none; padding: 10px 0;">
-            <div style="display: flex; flex-direction: column; gap: 2px;">
-              <span style="font-weight: 600; font-size: 13px;">{{ route.title }}</span>
-              <div style="display: flex; align-items: center; gap: 6px; font-size: 11px;">
-                <span v-if="route.distanceText" style="color: var(--text-secondary); font-weight: 600;">
-                  📍 {{ route.distanceText }}
-                </span>
-                <span :style="{ color: route.trafficStatus.color, fontWeight: '500' }">
-                  {{ route.trafficStatus.text }}
-                </span>
+      <div class="right-panel-body">
+        <!-- Weather Widget (Detección dinámica en todo Ecuador) -->
+        <div class="widget-card weather">
+          <div class="widget-title-row">
+            <div class="widget-title-text">
+              <span>Clima y Estado Vial</span>
+              <span style="color: #6ee7b7; font-size: 20px;">●</span>
+            </div>
+          </div>
+
+          <div class="weather-info-box" v-if="weatherData && !isLocatingWeather">
+            <div class="weather-top-row">
+              <span class="weather-big-emoji">{{ weatherCondition.emoji }}</span>
+              <div class="weather-temp-col">
+                <span class="weather-temp-num">{{ Math.round(weatherData.temperature) }}°C</span>
+                <span class="weather-cond-label">{{ weatherCondition.label }}</span>
               </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span style="font-weight: 800; font-size: 13px; color: var(--text-primary); white-space: nowrap;">{{ route.timeText }}</span>
-              <span class="arrow" style="font-size: 12px;">🧭</span>
+            <div class="weather-details-row">
+              <div class="weather-detail-item weather-loc-interactive" @click="fetchWeather" title="Clic para actualizar ubicación y clima">
+                <span class="loc-pin-icon" :class="{ 'spin-icon': isLocatingWeather }">📍</span>
+                <strong>{{ weatherLocationName }}</strong>
+              </div>
+              <div class="weather-detail-item">
+                <span class="weather-wind-icon">💨</span>
+                <span>Viento: <strong>{{ weatherData.windspeed }} km/h</strong></span>
+              </div>
             </div>
-          </a>
-        </div>
-        <div class="widget-list" v-else-if="isLoadingRoutes">
-          <div class="widget-list-item border-none" style="font-size: 11px; color: #64748b; padding-bottom: 0;">
-            ⏳ Calculando tiempos de viaje...
+          </div>
+
+          <div v-else-if="isLocatingWeather" class="weather-loading">
+            Detectando ubicación y consultando clima...
+          </div>
+
+          <div v-else class="weather-loading">
+            No se pudo cargar el clima.
+            <button @click="fetchWeather" class="retry-weather-btn">Reintentar</button>
           </div>
         </div>
-        <div class="widget-list" v-else>
-          <a href="https://www.google.com/maps" target="_blank" class="widget-list-item border-none" style="text-decoration: none;">
-            <span>🗺️ Abrir Google Maps</span><span class="arrow">🧭</span>
-          </a>
+
+        <!-- 6 Cuerpos Legales Oficiales de Tránsito en Ecuador -->
+        <div class="widget-card legal-card">
+          <div class="widget-title">
+            <span>Normativa Oficial Vigente</span>
+            <span class="legal-badge">6 Leyes</span>
+          </div>
+          <p class="legal-intro-text">
+            Enlaces a las fuentes oficiales públicas y gratuitas del Estado ecuatoriano que integran el corpus legal de TransiAI:
+          </p>
+
+          <div class="legal-links-list">
+            <!-- 1. COIP -->
+            <a href="https://www.defensoria.gob.ec/wp-content/uploads/2021/08/COIP.pdf" target="_blank" rel="noopener noreferrer" class="legal-link-item">
+              <div class="legal-item-info">
+                <strong>COIP</strong>
+                <span>Código Orgánico Integral Penal (Infracciones de Tránsito)</span>
+              </div>
+              <span class="legal-arrow">↗</span>
+            </a>
+
+            <!-- 2. LOTTTSV -->
+            <a href="https://www.ant.gob.ec/wp-content/uploads/2021/08/LOTTTSV-2021.pdf" target="_blank" rel="noopener noreferrer" class="legal-link-item">
+              <div class="legal-item-info">
+                <strong>LOTTTSV</strong>
+                <span>Ley Orgánica de Transporte Terrestre y Tránsito</span>
+              </div>
+              <span class="legal-arrow">↗</span>
+            </a>
+
+            <!-- 3. Reglamento LOTTTSV -->
+            <a href="https://www.ant.gob.ec/wp-content/uploads/2021/08/REGLAMENTO-A-LA-LEY-DE-TRANSITO.pdf" target="_blank" rel="noopener noreferrer" class="legal-link-item">
+              <div class="legal-item-info">
+                <strong>Reglamento LOTTTSV</strong>
+                <span>Reglamento General de Tránsito y Seguridad Vial</span>
+              </div>
+              <span class="legal-arrow">↗</span>
+            </a>
+
+            <!-- 4. Código del Trabajo -->
+            <a href="https://www.trabajo.gob.ec/wp-content/uploads/2012/10/CODIGO-DEL-TRABAJO.pdf" target="_blank" rel="noopener noreferrer" class="legal-link-item">
+              <div class="legal-item-info">
+                <strong>Código del Trabajo</strong>
+                <span>Indemnizaciones y accidentes laborales en tránsito</span>
+              </div>
+              <span class="legal-arrow">↗</span>
+            </a>
+
+            <!-- 5. Constitución -->
+            <a href="https://www.corteconstitucional.gob.ec/images/contenidos/biblioteca/constitucion_2008.pdf" target="_blank" rel="noopener noreferrer" class="legal-link-item">
+              <div class="legal-item-info">
+                <strong>Constitución (CRE)</strong>
+                <span>Derecho a la movilidad, debido proceso y seguridad vial</span>
+              </div>
+              <span class="legal-arrow">↗</span>
+            </a>
+
+            <!-- 6. COGEP -->
+            <a href="https://www.funcionjudicial.gob.ec/www/pdf/COGEP.pdf" target="_blank" rel="noopener noreferrer" class="legal-link-item">
+              <div class="legal-item-info">
+                <strong>COGEP</strong>
+                <span>Código Orgánico General de Procesos</span>
+              </div>
+              <span class="legal-arrow">↗</span>
+            </a>
+          </div>
+
+          <div class="legal-footer-note">
+            Acceso público libre y gratuito garantizado por las entidades oficiales del Ecuador (ANT, Asamblea Nacional, Ministerio del Trabajo).
+          </div>
         </div>
       </div>
-
     </aside>
+
+    <!-- Backdrop overlay para panel lateral derecho -->
+    <transition name="fade">
+      <div v-if="isRightPanelOpen" class="panel-backdrop-overlay" @click="closeRightPanel"></div>
+    </transition>
 
   </div>
 </template>
@@ -887,6 +967,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { API_BASE_URL, GOOGLE_CLIENT_ID } from '../config.js';
 import carrosLogo from '../assets/carros.png';
 import clipIcon from '../assets/clip.png';
+import robotLogo from '../assets/robot_transiai.png';
 
 const WMO_LABELS = {
   0: 'Despejado', 1: 'Mayormente despejado', 2: 'Parcialmente nublado', 3: 'Nublado',
@@ -958,20 +1039,34 @@ export default {
     const isDarkMode = ref(false);
     const isMobileSidebarOpen = ref(false);
     const isMobileWidgetsOpen = ref(false);
+    const isSidebarCollapsed = ref(false);
+    const isRightPanelOpen = ref(false);
+    const rightPanelTab = ref('all');
+    const isDeletingSingle = ref(false);
+    const deletingConvId = ref(null);
+
+    function toggleSidebar() {
+      if (typeof window !== 'undefined' && window.innerWidth <= 1024) {
+        isMobileSidebarOpen.value = !isMobileSidebarOpen.value;
+      } else {
+        isSidebarCollapsed.value = !isSidebarCollapsed.value;
+      }
+    }
+
+    function toggleRightPanel(tab = 'all') {
+      rightPanelTab.value = tab;
+      isRightPanelOpen.value = !isRightPanelOpen.value;
+    }
+
+    function closeRightPanel() {
+      isRightPanelOpen.value = false;
+    }
 
     function closeMobileDrawers() {
       isMobileSidebarOpen.value = false;
       isMobileWidgetsOpen.value = false;
+      isRightPanelOpen.value = false;
     }
-
-    // TomTom Routing State
-    const routeEstimates = ref([]);
-    const isLoadingRoutes = ref(false);
-
-    // TomTom Map State (Option 2)
-    const tomtomMapRef = ref(null);
-    const isMapLoaded = ref(false);
-    let ttMapInstance = null;
 
     function getWeatherCondition(code, isDay = 1) {
       if (code === undefined || code === null) return { label: 'Sin datos', emoji: '🌡️' };
@@ -1016,10 +1111,27 @@ export default {
     const convToDelete = ref(null);
 
     const suggestedQuestions = [
-      "¿Cuáles son los limites de velocidad permitidos?",
-      "¿Cómo consultar mis puntos en la licencia?",
-      "¿Qué hacer en caso de un accidente?"
+      "¿Se permite el uso de láminas polarizadas u oscurecidas en vehículos particulares?",
+      "¿Cuáles son las sanciones y pérdida de puntos por conducir con la licencia caducada?",
+      "Según los hechos de este informe pericial adjunto, ¿qué infracciones y sanciones aplican?"
     ];
+
+    function onSuggestionClick(idx) {
+      if (idx === 2) {
+        inputMessage.value = suggestedQuestions[2];
+        if (fileInputRef.value) {
+          fileInputRef.value.click();
+        }
+        nextTick(() => {
+          if (inputTextarea.value) {
+            inputTextarea.value.focus();
+            adjustTextareaHeight();
+          }
+        });
+      } else {
+        sendSuggestion(suggestedQuestions[idx]);
+      }
+    }
 
     const currentMessages = computed(() => {
       if (!activeConversationId.value) return [];
@@ -1293,6 +1405,8 @@ export default {
 
     async function executePermanentDelete(id) {
       if (!id) return;
+      deletingConvId.value = id;
+      isDeletingSingle.value = true;
       try {
         await fetch(`${API_BASE_URL}/api/conversations/${id}`, { method: 'DELETE' });
       } catch (e) {
@@ -1310,7 +1424,10 @@ export default {
 
         if (activeConversationId.value === id) {
           activeConversationId.value = null;
+          inputMessage.value = '';
         }
+        deletingConvId.value = null;
+        isDeletingSingle.value = false;
       }
     }
 
@@ -1329,8 +1446,6 @@ export default {
 
     async function fetchWeatherForCoords(lat, lon, customName = null) {
       try {
-        fetchRoutesInfo(lat, lon); 
-        initTomTomMap(lat, lon); 
         const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
@@ -1386,123 +1501,6 @@ export default {
       } else {
         await fetchWeatherForCoords(-0.2298, -78.5249, 'Quito (Predeterminado)');
         isLocatingWeather.value = false;
-      }
-    }
-
-    async function fetchRoutesInfo(userLat = -0.2298, userLon = -78.5249) {
-      isLoadingRoutes.value = true;
-      try {
-        const apiKey = import.meta.env.VITE_TOMTOM_API_KEY;
-        const destinations = [
-          { title: '✈️ Aeropuerto Mariscal Sucre', destLat: -0.1292, destLon: -78.3575 },
-          { title: '🎓 Universidad Central del Ecuador', destLat: -0.1997, destLon: -78.5061 },
-          { title: '🚌 Terminal Terrestre Quitumbe', destLat: -0.2789, destLon: -78.5442 }
-        ];
-
-        const results = await Promise.all(
-          destinations.map(async (d) => {
-            const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLon}&destination=${d.destLat},${d.destLon}`;
-            try {
-              const url = `https://api.tomtom.com/routing/1/calculateRoute/${userLat},${userLon}:${d.destLat},${d.destLon}/json?key=${apiKey}&traffic=true`;
-              const res = await fetch(url);
-              if (!res.ok) throw new Error(`HTTP ${res.status}`);
-              const data = await res.json();
-              const summary = data.routes?.[0]?.summary;
-              if (summary) {
-                const totalMinutes = Math.round(summary.travelTimeInSeconds / 60);
-                let timeText = '';
-                if (totalMinutes >= 60) {
-                  const hours = Math.floor(totalMinutes / 60);
-                  const mins = totalMinutes % 60;
-                  timeText = mins > 0 ? `${hours} h ${mins} min` : `${hours} h`;
-                } else {
-                  timeText = `${totalMinutes} min`;
-                }
-
-                const lengthMeters = summary.lengthInMeters;
-                let distanceText = '';
-                if (lengthMeters !== undefined && lengthMeters !== null) {
-                  const km = lengthMeters / 1000;
-                  distanceText = km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km)} km`;
-                }
-
-                const delayMin = Math.round((summary.trafficDelayInSeconds || 0) / 60);
-                let trafficStatus = { text: '🟢 Fluido', color: '#10b981' };
-                if (delayMin > 5) {
-                  trafficStatus = { text: `🔴 +${delayMin} min tráfico`, color: '#ef4444' };
-                } else if (delayMin > 1) {
-                  trafficStatus = { text: `🟡 +${delayMin} min moderado`, color: '#f59e0b' };
-                }
-                return {
-                  title: d.title,
-                  timeText,
-                  distanceText,
-                  trafficStatus,
-                  mapsUrl
-                };
-              }
-            } catch (e) {
-              console.warn(`Error calculando ruta para ${d.title}:`, e);
-            }
-            return {
-              title: d.title,
-              timeText: 'N/D',
-              trafficStatus: { text: '🧭 Ver mapa', color: '#64748b' },
-              mapsUrl
-            };
-          })
-        );
-
-        routeEstimates.value = results;
-      } catch (e) {
-        console.error('Error calculando estimado de rutas TomTom:', e);
-      } finally {
-        isLoadingRoutes.value = false;
-      }
-    }
-
-    //Fallback para que no se rompa si no hay API Key
-
-    function initTomTomMap(lat = -0.2298, lon = -78.5249) {
-      const apiKey = import.meta.env.VITE_TOMTOM_API_KEY;
-      if (!apiKey) return;
-
-      if (!window.tt) {
-        const cssLink = document.createElement('link');
-        cssLink.rel = 'stylesheet';
-        cssLink.href = 'https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps.css';
-        document.head.appendChild(cssLink);
-
-        const jsScript = document.createElement('script');
-        jsScript.src = 'https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps-web.min.js';
-        jsScript.onload = () => createTomTomMap(apiKey, lat, lon);
-        document.head.appendChild(jsScript);
-      } else {
-        createTomTomMap(apiKey, lat, lon);
-      }
-    }
-
-    function createTomTomMap(apiKey, lat, lon) {
-      if (!tomtomMapRef.value || !window.tt) return;
-      try {
-        if (ttMapInstance) {
-          ttMapInstance.remove();
-        }
-        ttMapInstance = window.tt.map({
-          key: apiKey,
-          container: tomtomMapRef.value,
-          center: [lon, lat],
-          zoom: 12.5,
-          stylesVisibility: {
-            trafficIncidents: true,
-            trafficFlow: true
-          }
-        });
-        
-        isMapLoaded.value = true;
-        ttMapInstance.addControl(new window.tt.NavigationControl());
-      } catch (e) {
-        console.error('Error al renderizar mapa de TomTom:', e);
       }
     }
 
@@ -2307,8 +2305,9 @@ export default {
       conversations, allConvsList, activeConversationId, currentMessages, inputMessage, isStreaming, streamingContent,
       chatArea, selectedModel, isCloudEnvironment, weatherData, trafficAlerts, suggestedQuestions, isDarkMode,
       showDeleteModal, showConfirmClearAllModal, isClearingHistory, convToDelete, weatherLocationName, isLocatingWeather,
-      weatherCondition, fetchWeather, routeEstimates, isLoadingRoutes, fetchRoutesInfo,
-      tomtomMapRef, isMapLoaded, initTomTomMap, inputTextarea, isResettingChat,
+      weatherCondition, fetchWeather, isSidebarCollapsed, isRightPanelOpen, rightPanelTab,
+      isDeletingSingle, deletingConvId, toggleSidebar, toggleRightPanel, closeRightPanel, onSuggestionClick,
+      inputTextarea, isResettingChat,
       fileInputRef, isUploading, attachedFile, removeAttachedFile, handleFileUpload, adjustTextareaHeight,
       showSettingsMenu, showThemeSubmenu, showActivityModal, showModelModal, showLegalModal, showSuccessClearModal,
       dontShowDeleteNoticeAgain, dismissSuccessClearModal,
@@ -2320,7 +2319,7 @@ export default {
       copiedMessageIdx, copyMessageText, editUserMessage,
       editingMessageIdx, editingMessageText, inplaceTextareaRef, startEditingUserMessage, cancelEditingUserMessage, adjustInplaceTextareaHeight, submitUpdatedMessage,
       retryMessage,
-      carrosLogo, clipIcon
+      carrosLogo, clipIcon, robotLogo
     };
   }
 };
