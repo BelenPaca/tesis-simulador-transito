@@ -926,16 +926,16 @@
 
           <div class="legal-links-list">
             <!-- 1. COIP -->
-            <a href="https://www.defensoria.gob.ec/wp-content/uploads/2021/08/COIP.pdf" target="_blank" rel="noopener noreferrer" class="legal-link-item">
+            <a href="/normativa/coip.pdf" target="_blank" rel="noopener noreferrer" class="legal-link-item">
               <div class="legal-item-info">
                 <strong>COIP</strong>
-                <span>Código Orgánico Integral Penal (Infracciones de Tránsito)</span>
+                <span>Código Orgánico Integral Penal (Texto Oficial Completo)</span>
               </div>
               <span class="legal-arrow">↗</span>
             </a>
 
             <!-- 2. LOTTTSV -->
-            <a href="https://www.ant.gob.ec/wp-content/uploads/2021/08/LOTTTSV-2021.pdf" target="_blank" rel="noopener noreferrer" class="legal-link-item">
+            <a href="/normativa/lotttsv.pdf" target="_blank" rel="noopener noreferrer" class="legal-link-item">
               <div class="legal-item-info">
                 <strong>LOTTTSV</strong>
                 <span>Ley Orgánica de Transporte Terrestre y Tránsito</span>
@@ -944,7 +944,7 @@
             </a>
 
             <!-- 3. Reglamento LOTTTSV -->
-            <a href="https://www.ant.gob.ec/wp-content/uploads/2021/08/REGLAMENTO-A-LA-LEY-DE-TRANSITO.pdf" target="_blank" rel="noopener noreferrer" class="legal-link-item">
+            <a href="/normativa/reglamento_lotttsv.pdf" target="_blank" rel="noopener noreferrer" class="legal-link-item">
               <div class="legal-item-info">
                 <strong>Reglamento LOTTTSV</strong>
                 <span>Reglamento General de Tránsito y Seguridad Vial</span>
@@ -953,7 +953,7 @@
             </a>
 
             <!-- 4. Código del Trabajo -->
-            <a href="https://www.trabajo.gob.ec/wp-content/uploads/2012/10/CODIGO-DEL-TRABAJO.pdf" target="_blank" rel="noopener noreferrer" class="legal-link-item">
+            <a href="/normativa/codigo_trabajo.pdf" target="_blank" rel="noopener noreferrer" class="legal-link-item">
               <div class="legal-item-info">
                 <strong>Código del Trabajo</strong>
                 <span>Indemnizaciones y accidentes laborales en tránsito</span>
@@ -962,7 +962,7 @@
             </a>
 
             <!-- 5. Constitución -->
-            <a href="https://www.corteconstitucional.gob.ec/images/contenidos/biblioteca/constitucion_2008.pdf" target="_blank" rel="noopener noreferrer" class="legal-link-item">
+            <a href="/normativa/constitucion.pdf" target="_blank" rel="noopener noreferrer" class="legal-link-item">
               <div class="legal-item-info">
                 <strong>Constitución (CRE)</strong>
                 <span>Derecho a la movilidad, debido proceso y seguridad vial</span>
@@ -971,7 +971,7 @@
             </a>
 
             <!-- 6. COGEP -->
-            <a href="https://www.funcionjudicial.gob.ec/www/pdf/COGEP.pdf" target="_blank" rel="noopener noreferrer" class="legal-link-item">
+            <a href="/normativa/cogep.pdf" target="_blank" rel="noopener noreferrer" class="legal-link-item">
               <div class="legal-item-info">
                 <strong>COGEP</strong>
                 <span>Código Orgánico General de Procesos</span>
