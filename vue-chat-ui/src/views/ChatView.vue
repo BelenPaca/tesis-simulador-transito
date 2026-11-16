@@ -322,12 +322,17 @@
             <span class="brand-slogan">Información que te mueve <span class="dot"></span></span>
           </div>
         </div>
-        <button class="sidebar-collapse-btn desktop-only" @click="toggleSidebar" title="Ocultar menú lateral" aria-label="Ocultar menú lateral">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect width="18" height="18" x="3" y="3" rx="3" />
-            <path d="M9 3v18" />
-          </svg>
-        </button>
+        <div class="has-custom-tooltip desktop-only">
+          <button class="sidebar-collapse-btn" @click="toggleSidebar" aria-label="Ocultar menú lateral">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="3" rx="3" />
+              <path d="M9 3v18" />
+            </svg>
+          </button>
+          <div class="custom-tooltip-pill tooltip-bottom">
+            Ocultar menú lateral
+          </div>
+        </div>
         <button class="mobile-drawer-close-btn" @click="isMobileSidebarOpen = false" title="Cerrar menú">✕</button>
       </div>
 
@@ -389,11 +394,11 @@
                 <span class="menu-label">Actividad</span>
               </div>
 
-              <!-- Item 2: Tema (con submenú interactivo) -->
-              <div class="gemini-menu-item has-submenu" @mouseenter="showThemeSubmenu = true" @mouseleave="showThemeSubmenu = false">
+              <!-- Item 2: Tema (con submenú interactivo y clic directo para desplegar/seleccionar) -->
+              <div class="gemini-menu-item has-submenu" @click="showThemeSubmenu = !showThemeSubmenu" @mouseenter="showThemeSubmenu = true">
                 <div class="menu-item-row">
                   <span class="menu-icon-svg">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg v-if="!isDarkMode" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <circle cx="12" cy="12" r="5"></circle>
                       <line x1="12" y1="1" x2="12" y2="3"></line>
                       <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -404,19 +409,41 @@
                       <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
                       <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
                     </svg>
+                    <svg v-else width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
                   </span>
                   <span class="menu-label">Tema</span>
-                  <span class="menu-arrow">▶</span>
+                  <span class="menu-badge-val">{{ isDarkMode ? 'Oscuro' : 'Claro' }}</span>
+                  <span class="menu-arrow" :class="{ 'is-open': showThemeSubmenu }">▶</span>
                 </div>
                 <!-- Submenú de Tema -->
                 <transition name="fade">
-                  <div v-if="showThemeSubmenu" class="gemini-submenu">
+                  <div v-if="showThemeSubmenu" class="gemini-submenu" @click.stop>
                     <div class="gemini-submenu-item" :class="{ 'is-selected': !isDarkMode }" @click="isDarkMode = false">
-                      <span>Luz</span>
+                      <span style="display:flex; align-items:center; gap:6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="12" cy="12" r="5"></circle>
+                          <line x1="12" y1="1" x2="12" y2="3"></line>
+                          <line x1="12" y1="21" x2="12" y2="23"></line>
+                          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                          <line x1="1" y1="12" x2="3" y2="12"></line>
+                          <line x1="21" y1="12" x2="23" y2="12"></line>
+                          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                        Claro
+                      </span>
                       <span v-if="!isDarkMode" class="check-mark">✓</span>
                     </div>
                     <div class="gemini-submenu-item" :class="{ 'is-selected': isDarkMode }" @click="isDarkMode = true">
-                      <span>Oscuro</span>
+                      <span style="display:flex; align-items:center; gap:6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                        Oscuro
+                      </span>
                       <span v-if="isDarkMode" class="check-mark">✓</span>
                     </div>
                   </div>
@@ -492,18 +519,28 @@
       <div class="top-bar">
         <div class="top-bar-left">
           <div class="left-nav-stack">
-            <button class="nav-icon-btn sidebar-toggle-btn" @click="toggleSidebar" title="Historial de conversaciones" aria-label="Historial">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect width="18" height="18" x="3" y="3" rx="3" />
-                <path d="M9 3v18" />
-              </svg>
-            </button>
-            <button class="nav-icon-btn normativa-toggle-btn" @click="toggleRightPanel('legal')" title="Normativa Oficial Vigente" aria-label="Normativa">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-              </svg>
-            </button>
+            <div class="has-custom-tooltip">
+              <button class="nav-icon-btn sidebar-toggle-btn" @click="toggleSidebar" aria-label="Historial de conversaciones">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="18" height="18" x="3" y="3" rx="3" />
+                  <path d="M9 3v18" />
+                </svg>
+              </button>
+              <div class="custom-tooltip-pill tooltip-right">
+                Historial de conversaciones
+              </div>
+            </div>
+            <div class="has-custom-tooltip">
+              <button class="nav-icon-btn normativa-toggle-btn" @click="toggleRightPanel('legal')" aria-label="Normativa oficial">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                </svg>
+              </button>
+              <div class="custom-tooltip-pill tooltip-right">
+                Normativa oficial
+              </div>
+            </div>
           </div>
           <div class="mobile-brand-info" @click="goToHome" title="Ir al Inicio">
             <img :src="carrosLogo" alt="Logo" class="mobile-brand-logo" />
@@ -596,8 +633,8 @@
         <!-- Messages List -->
         <div class="chat-messages" v-if="currentMessages.length > 0 || isStreaming">
           <div v-for="(msg, idx) in currentMessages" :key="idx" class="message-wrapper">
-            <div class="message" :class="msg.role">
-              <div class="message-bubble">
+            <div class="message" :class="[msg.role, { 'is-editing-message': editingMessageIdx === idx }]">
+              <div class="message-bubble" :class="{ 'is-editing': editingMessageIdx === idx }">
                 <div v-if="msg.attachedFile" class="message-attached-file">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -606,8 +643,30 @@
                   <span>{{ msg.attachedFile.name }}</span>
                 </div>
 
-                <!-- Contenido del mensaje -->
-                <div v-html="formatMessage(msg.content, msg.role)"></div>
+                <!-- Modo Lectura Normal -->
+                <div v-if="editingMessageIdx !== idx" v-html="formatMessage(msg.content, msg.role)"></div>
+
+                <!-- Modo Edición In-Place (en el mismo mensaje del usuario) -->
+                <div v-else class="inplace-edit-wrapper">
+                  <textarea
+                    ref="inplaceTextareaRef"
+                    v-model="editingMessageText"
+                    class="inplace-edit-textarea"
+                    rows="2"
+                    placeholder="Edita tu pregunta..."
+                    @input="adjustInplaceTextareaHeight"
+                    @keydown.enter.exact.prevent="submitUpdatedMessage(idx)"
+                    @keydown.esc="cancelEditingUserMessage"
+                  ></textarea>
+                  <div class="inplace-edit-actions">
+                    <button type="button" class="btn-edit-cancel" @click="cancelEditingUserMessage">
+                      Cancelar
+                    </button>
+                    <button type="button" class="btn-edit-submit" :disabled="!editingMessageText.trim() || isStreaming" @click="submitUpdatedMessage(idx)">
+                      Actualizar
+                    </button>
+                  </div>
+                </div>
 
                 <!-- Botón de reintento si hubo intermitencia de red -->
                 <div v-if="msg.isError && msg.retryPrompt && !isStreaming" class="retry-action-wrapper">
@@ -630,10 +689,10 @@
                 </div>
               </div>
 
-              <!-- Botones de Acción (Copiar / Editar) estilo Gemini -->
-              <div class="message-actions-toolbar" :class="msg.role">
-                <div class="msg-action-btn-wrapper" :class="{ 'is-active-tooltip': copiedMessageIdx === idx }">
-                  <button class="msg-action-btn" @click="copyMessageText(msg.content, idx)" :title="msg.role === 'user' ? 'Copiar texto' : 'Copiar respuesta'" :aria-label="copiedMessageIdx === idx ? 'Copiado' : (msg.role === 'user' ? 'Copiar texto' : 'Copiar respuesta')">
+              <!-- Botones de Acción (Copiar / Editar) estilo Gemini (se ocultan si este mensaje está en edición) -->
+              <div v-if="editingMessageIdx !== idx" class="message-actions-toolbar" :class="msg.role">
+                <div class="msg-action-btn-wrapper has-custom-tooltip" :class="{ 'is-active-tooltip': copiedMessageIdx === idx }">
+                  <button class="msg-action-btn" @click="copyMessageText(msg.content, idx)" :aria-label="copiedMessageIdx === idx ? 'Copiado' : (msg.role === 'user' ? 'Copiar texto' : 'Copiar respuesta')">
                     <svg v-if="copiedMessageIdx !== idx" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <rect x="8" y="8" width="12" height="12" rx="2.5"></rect>
                       <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>
@@ -642,19 +701,19 @@
                       <polyline points="20 6 9 17 4 12"></polyline>
                     </svg>
                   </button>
-                  <div class="msg-action-tooltip">
+                  <div class="custom-tooltip-pill tooltip-top">
                     {{ copiedMessageIdx === idx ? 'Copiado' : (msg.role === 'user' ? 'Copiar texto' : 'Copiar respuesta') }}
                   </div>
                 </div>
 
-                <div v-if="msg.role === 'user'" class="msg-action-btn-wrapper">
-                  <button class="msg-action-btn" @click.stop="editUserMessage(msg.content)" title="Editar pregunta" aria-label="Editar pregunta">
+                <div v-if="msg.role === 'user'" class="msg-action-btn-wrapper has-custom-tooltip">
+                  <button class="msg-action-btn" @click.stop="startEditingUserMessage(msg, idx)" aria-label="Editar pregunta">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
                       <path d="m15 5 4 4"></path>
                     </svg>
                   </button>
-                  <div class="msg-action-tooltip">
+                  <div class="custom-tooltip-pill tooltip-top">
                     Editar pregunta
                   </div>
                 </div>
@@ -1906,6 +1965,58 @@ export default {
       }, 2000);
     }
 
+    // ─── EDICIÓN IN-PLACE (ESTILO GEMINI) ────────────────────────────────────
+    const editingMessageIdx = ref(null);
+    const editingMessageText = ref('');
+    const inplaceTextareaRef = ref(null);
+
+    function startEditingUserMessage(msg, idx) {
+      closeRightPanel();
+      closeMobileDrawers();
+      editingMessageIdx.value = idx;
+      editingMessageText.value = msg.content;
+      nextTick(() => {
+        if (inplaceTextareaRef.value) {
+          inplaceTextareaRef.value.focus();
+          try {
+            const len = editingMessageText.value.length;
+            inplaceTextareaRef.value.setSelectionRange(len, len);
+          } catch (e) {}
+          adjustInplaceTextareaHeight();
+        }
+      });
+    }
+
+    function cancelEditingUserMessage() {
+      editingMessageIdx.value = null;
+      editingMessageText.value = '';
+    }
+
+    function adjustInplaceTextareaHeight() {
+      if (!inplaceTextareaRef.value) return;
+      inplaceTextareaRef.value.style.height = 'auto';
+      inplaceTextareaRef.value.style.height = `${Math.min(inplaceTextareaRef.value.scrollHeight, 240)}px`;
+    }
+
+    async function submitUpdatedMessage(idx) {
+      const newText = editingMessageText.value.trim();
+      if (!newText || isStreaming.value) return;
+
+      const convId = activeConversationId.value;
+      if (!convId || !localMessages.value[convId]) return;
+
+      // Actualizar el contenido del mensaje
+      localMessages.value[convId][idx].content = newText;
+
+      // Truncar la conversación a partir de este mensaje para regenerar respuesta fresca
+      localMessages.value[convId] = localMessages.value[convId].slice(0, idx + 1);
+
+      cancelEditingUserMessage();
+
+      // Disparar la respuesta con el prompt actualizado
+      await executeChatStream(newText, convId, null);
+    }
+
     function editUserMessage(text) {
       if (!text) return;
       inputMessage.value = text;
@@ -2251,6 +2362,7 @@ export default {
       newConversation, selectConversation, deleteSidebarConversation, deleteActivityConversation, confirmDelete, sendMessage, sendSuggestion, 
       getInfractionData, getGravityClass, getNeedleAngle, formatMessage, getMessageLegalSources, getAnalyzedCount, toggleTheme,
       copiedMessageIdx, copyMessageText, editUserMessage,
+      editingMessageIdx, editingMessageText, inplaceTextareaRef, startEditingUserMessage, cancelEditingUserMessage, adjustInplaceTextareaHeight, submitUpdatedMessage,
       retryMessage,
       carrosLogo, clipIcon, robotLogo
     };
