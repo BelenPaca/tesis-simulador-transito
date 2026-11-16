@@ -170,7 +170,7 @@ body {
 
 .top-bar {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
   padding: 16px 24px;
   z-index: 10;
@@ -365,85 +365,6 @@ body {
   min-width: 100% !important;
   max-width: 100% !important;
   box-sizing: border-box;
-}
-.dark-theme .message-bubble.is-editing {
-  background: #1e293b !important;
-  border-color: #10b981 !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
-}
-.inplace-edit-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-}
-.inplace-edit-textarea {
-  width: 100%;
-  box-sizing: border-box;
-  background: transparent;
-  border: none;
-  outline: none;
-  resize: none;
-  font-family: inherit;
-  font-size: 14.5px;
-  line-height: 1.5;
-  color: var(--text-primary, #0f172a);
-  padding: 0;
-  min-height: 38px;
-  overflow-y: hidden;
-}
-.dark-theme .inplace-edit-textarea {
-  color: #f1f5f9;
-}
-.inplace-edit-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
-}
-.dark-theme .inplace-edit-actions {
-  border-top-color: rgba(255, 255, 255, 0.1);
-}
-.btn-edit-cancel {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--text-secondary, #64748b);
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.btn-edit-cancel:hover {
-  background: rgba(0, 0, 0, 0.06);
-  color: var(--text-primary);
-}
-.dark-theme .btn-edit-cancel:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-}
-.btn-edit-submit {
-  background: #0db37b;
-  border: none;
-  color: #ffffff;
-  padding: 6px 16px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  box-shadow: 0 2px 6px rgba(13, 179, 123, 0.25);
-}
-.btn-edit-submit:hover:not(:disabled) {
-  background: #0a9968;
-  transform: translateY(-1px);
-}
-.btn-edit-submit:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* MESSAGE ACTIONS TOOLBAR (Copiar / Editar estilo Gemini) */
@@ -1121,6 +1042,25 @@ textarea { flex: 1; border: none; background: transparent; resize: none; font-fa
 .disclaimer { font-size: 11px; color: var(--text-secondary); margin-top: 10px; text-align: left; padding-left: 10px;}
 
 /* HEADER PILLS & TOGGLES */
+.sidebar-collapse-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+.sidebar-collapse-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--accent-green);
+}
+
 .sidebar-toggle-btn {
   background: transparent;
   border: none;
@@ -1138,6 +1078,17 @@ textarea { flex: 1; border: none; background: transparent; resize: none; font-fa
 .sidebar-toggle-btn:hover {
   background: var(--bg-hover);
   color: var(--accent-green);
+}
+
+@media (min-width: 1025px) {
+  .sidebar:not(.is-collapsed) ~ .main-content .top-bar-left .sidebar-toggle-btn {
+    display: none;
+  }
+}
+@media (max-width: 1024px) {
+  .sidebar-collapse-btn.desktop-only {
+    display: none;
+  }
 }
 
 .header-pill-btn {

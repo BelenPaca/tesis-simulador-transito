@@ -322,6 +322,13 @@
             <span class="brand-slogan">Información que te mueve <span class="dot"></span></span>
           </div>
         </div>
+        <button class="sidebar-collapse-btn desktop-only" @click="toggleSidebar" title="Ocultar menú lateral" aria-label="Ocultar menú lateral">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
         <button class="mobile-drawer-close-btn" @click="isMobileSidebarOpen = false" title="Cerrar menú">✕</button>
       </div>
 
@@ -464,8 +471,8 @@
         </div>
 
         <div class="top-bar-right">
-          <!-- Píldora de Clima Compacta (abre panel derecho) -->
-          <button class="header-pill-btn weather-pill" @click="toggleRightPanel('weather')" title="Ver clima y estado vial">
+          <!-- Píldora de Clima Compacta (Única ubicación del clima: informativa y actualizable al clic) -->
+          <button class="header-pill-btn weather-pill" @click="fetchWeather" title="Ubicación y clima actual (clic para actualizar)">
             <span class="weather-pill-icon">{{ weatherCondition.emoji || '⛅' }}</span>
             <span v-if="weatherData" class="weather-pill-temp">{{ Math.round(weatherData.temperature) }}°C</span>
             <span class="weather-pill-loc">{{ weatherLocationName }}</span>
@@ -561,8 +568,8 @@
         <!-- Messages List -->
         <div class="chat-messages" v-if="currentMessages.length > 0 || isStreaming">
           <div v-for="(msg, idx) in currentMessages" :key="idx" class="message-wrapper">
-            <div class="message" :class="[msg.role, { 'is-editing-message': editingMessageIdx === idx }]">
-              <div class="message-bubble" :class="{ 'is-editing': editingMessageIdx === idx }">
+            <div class="message" :class="msg.role">
+              <div class="message-bubble">
                 <div v-if="msg.attachedFile" class="message-attached-file">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -571,8 +578,8 @@
                   <span>{{ msg.attachedFile.name }}</span>
                 </div>
 
-                <!-- Modo Lectura Normal -->
-                <div v-if="editingMessageIdx !== idx" v-html="formatMessage(msg.content, msg.role)"></div>
+                <!-- Contenido del mensaje -->
+                <div v-html="formatMessage(msg.content, msg.role)"></div>
 
                 <!-- Botón de reintento si hubo intermitencia de red -->
                 <div v-if="msg.isError && msg.retryPrompt && !isStreaming" class="retry-action-wrapper">
@@ -587,28 +594,6 @@
                   </button>
                 </div>
 
-                <!-- Modo Edición In-Place (en el mismo mensaje del usuario) -->
-                <div v-else class="inplace-edit-wrapper">
-                  <textarea
-                    ref="inplaceTextareaRef"
-                    v-model="editingMessageText"
-                    class="inplace-edit-textarea"
-                    rows="2"
-                    placeholder="Edita tu pregunta..."
-                    @input="adjustInplaceTextareaHeight"
-                    @keydown.enter.exact.prevent="submitUpdatedMessage(idx)"
-                    @keydown.esc="cancelEditingUserMessage"
-                  ></textarea>
-                  <div class="inplace-edit-actions">
-                    <button type="button" class="btn-edit-cancel" @click="cancelEditingUserMessage">
-                      Cancelar
-                    </button>
-                    <button type="button" class="btn-edit-submit" :disabled="!editingMessageText.trim() || isStreaming" @click="submitUpdatedMessage(idx)">
-                      Actualizar
-                    </button>
-                  </div>
-                </div>
-
                 <!-- Resumen de artículos analizados al pie del mensaje -->
                 <div v-if="msg.role === 'assistant' && getAnalyzedCount(msg.content) > 0" class="gemini-sources-bar">
                   <span class="gemini-sources-count">
@@ -617,10 +602,10 @@
                 </div>
               </div>
 
-              <!-- Botones de Acción (Copiar / Editar) estilo Gemini (se ocultan si este mensaje está en edición) -->
-              <div v-if="editingMessageIdx !== idx" class="message-actions-toolbar" :class="msg.role">
+              <!-- Botones de Acción (Copiar / Editar) estilo Gemini -->
+              <div class="message-actions-toolbar" :class="msg.role">
                 <div class="msg-action-btn-wrapper" :class="{ 'is-active-tooltip': copiedMessageIdx === idx }">
-                  <button class="msg-action-btn" @click="copyMessageText(msg.content, idx)" :title="msg.role === 'user' ? 'Copy prompt' : 'Copiar respuesta'" :aria-label="copiedMessageIdx === idx ? 'Copiado' : (msg.role === 'user' ? 'Copy prompt' : 'Copiar respuesta')">
+                  <button class="msg-action-btn" @click="copyMessageText(msg.content, idx)" :title="msg.role === 'user' ? 'Copiar texto' : 'Copiar respuesta'" :aria-label="copiedMessageIdx === idx ? 'Copiado' : (msg.role === 'user' ? 'Copiar texto' : 'Copiar respuesta')">
                     <svg v-if="copiedMessageIdx !== idx" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <rect x="8" y="8" width="12" height="12" rx="2.5"></rect>
                       <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>
@@ -630,19 +615,19 @@
                     </svg>
                   </button>
                   <div class="msg-action-tooltip">
-                    {{ copiedMessageIdx === idx ? 'Copiado' : (msg.role === 'user' ? 'Copy prompt' : 'Copiar respuesta') }}
+                    {{ copiedMessageIdx === idx ? 'Copiado' : (msg.role === 'user' ? 'Copiar texto' : 'Copiar respuesta') }}
                   </div>
                 </div>
 
                 <div v-if="msg.role === 'user'" class="msg-action-btn-wrapper">
-                  <button class="msg-action-btn" @click="startEditingUserMessage(msg, idx)" title="Editar prompt" aria-label="Editar prompt">
+                  <button class="msg-action-btn" @click="editUserMessage(msg.content)" title="Editar pregunta" aria-label="Editar pregunta">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
                       <path d="m15 5 4 4"></path>
                     </svg>
                   </button>
                   <div class="msg-action-tooltip">
-                    Editar prompt
+                    Editar pregunta
                   </div>
                 </div>
               </div>
@@ -831,59 +816,19 @@
       <div class="right-panel-header">
         <div class="right-panel-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-            <path d="M2 17l10 5 10-5"></path>
-            <path d="M2 12l10 5 10-5"></path>
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
           </svg>
-          <h3>Información y Normativa</h3>
+          <h3>Normativa Oficial Vigente</h3>
         </div>
         <button class="panel-close-btn" @click="closeRightPanel" title="Cerrar panel">✕</button>
       </div>
 
       <div class="right-panel-body">
-        <!-- Weather Widget (Detección dinámica en todo Ecuador) -->
-        <div class="widget-card weather">
-          <div class="widget-title-row">
-            <div class="widget-title-text">
-              <span>Clima y Estado Vial</span>
-              <span style="color: #6ee7b7; font-size: 20px;">●</span>
-            </div>
-          </div>
-
-          <div class="weather-info-box" v-if="weatherData && !isLocatingWeather">
-            <div class="weather-top-row">
-              <span class="weather-big-emoji">{{ weatherCondition.emoji }}</span>
-              <div class="weather-temp-col">
-                <span class="weather-temp-num">{{ Math.round(weatherData.temperature) }}°C</span>
-                <span class="weather-cond-label">{{ weatherCondition.label }}</span>
-              </div>
-            </div>
-            <div class="weather-details-row">
-              <div class="weather-detail-item weather-loc-interactive" @click="fetchWeather" title="Clic para actualizar ubicación y clima">
-                <span class="loc-pin-icon" :class="{ 'spin-icon': isLocatingWeather }">📍</span>
-                <strong>{{ weatherLocationName }}</strong>
-              </div>
-              <div class="weather-detail-item">
-                <span class="weather-wind-icon">💨</span>
-                <span>Viento: <strong>{{ weatherData.windspeed }} km/h</strong></span>
-              </div>
-            </div>
-          </div>
-
-          <div v-else-if="isLocatingWeather" class="weather-loading">
-            Detectando ubicación y consultando clima...
-          </div>
-
-          <div v-else class="weather-loading">
-            No se pudo cargar el clima.
-            <button @click="fetchWeather" class="retry-weather-btn">Reintentar</button>
-          </div>
-        </div>
-
         <!-- 6 Cuerpos Legales Oficiales de Tránsito en Ecuador -->
         <div class="widget-card legal-card">
           <div class="widget-title">
-            <span>Normativa Oficial Vigente</span>
+            <span>Corpus Legal Oficial</span>
             <span class="legal-badge">6 Leyes</span>
           </div>
           <p class="legal-intro-text">
@@ -1931,52 +1876,6 @@ export default {
       }, 2000);
     }
 
-    // Edición In-Place (directamente en el mensaje estilo Gemini)
-    const editingMessageIdx = ref(null);
-    const editingMessageText = ref('');
-    const inplaceTextareaRef = ref(null);
-
-    function startEditingUserMessage(msg, idx) {
-      editingMessageIdx.value = idx;
-      editingMessageText.value = msg.content;
-      nextTick(() => {
-        if (inplaceTextareaRef.value) {
-          inplaceTextareaRef.value.focus();
-          adjustInplaceTextareaHeight();
-        }
-      });
-    }
-
-    function cancelEditingUserMessage() {
-      editingMessageIdx.value = null;
-      editingMessageText.value = '';
-    }
-
-    function adjustInplaceTextareaHeight() {
-      if (!inplaceTextareaRef.value) return;
-      inplaceTextareaRef.value.style.height = 'auto';
-      inplaceTextareaRef.value.style.height = `${Math.min(inplaceTextareaRef.value.scrollHeight, 240)}px`;
-    }
-
-    async function submitUpdatedMessage(idx) {
-      const newText = editingMessageText.value.trim();
-      if (!newText || isStreaming.value) return;
-
-      const convId = activeConversationId.value;
-      if (!convId || !localMessages.value[convId]) return;
-
-      // Actualizar el mensaje del usuario
-      localMessages.value[convId][idx].content = newText;
-
-      // Descartar mensajes posteriores para regenerar a partir del nuevo prompt
-      localMessages.value[convId] = localMessages.value[convId].slice(0, idx + 1);
-
-      cancelEditingUserMessage();
-
-      // Disparar la respuesta con el prompt actualizado
-      await executeChatStream(newText, convId, null);
-    }
-
     function editUserMessage(text) {
       if (!text) return;
       inputMessage.value = text;
@@ -2317,7 +2216,6 @@ export default {
       newConversation, selectConversation, deleteSidebarConversation, deleteActivityConversation, confirmDelete, sendMessage, sendSuggestion, 
       getInfractionData, getGravityClass, getNeedleAngle, formatMessage, getMessageLegalSources, getAnalyzedCount, toggleTheme,
       copiedMessageIdx, copyMessageText, editUserMessage,
-      editingMessageIdx, editingMessageText, inplaceTextareaRef, startEditingUserMessage, cancelEditingUserMessage, adjustInplaceTextareaHeight, submitUpdatedMessage,
       retryMessage,
       carrosLogo, clipIcon, robotLogo
     };
