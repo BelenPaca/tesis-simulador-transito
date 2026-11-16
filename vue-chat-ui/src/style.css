@@ -2,20 +2,20 @@
 
 :root {
   /* Tema Claro (Por defecto) */
-  --bg-main: #e2e8f0; 
-  --bg-sidebar: #162640;
-  --bg-sidebar-hover: #213555;
+  --bg-main: #f1f5f9; 
+  --bg-sidebar: #ffffff;
+  --bg-sidebar-hover: #f1f5f9;
   --bg-panel: #ffffff;
   
   --accent-green: #0db37b;
   --accent-green-hover: #0a9666;
   --text-primary: #1e293b;
   --text-secondary: #64748b;
-  --text-sidebar: #e2e8f0;
-  --border-subtle: #f1f5f9;
+  --text-sidebar: #334155;
+  --border-subtle: #e2e8f0;
   
-  --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
-  --shadow-md: 0 8px 16px rgba(0,0,0,0.08);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
 }
 
 .dark-theme {
@@ -58,11 +58,12 @@ body {
   width: 260px;
   background: var(--bg-sidebar);
   border-radius: 20px;
+  border: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   color: var(--text-sidebar);
   box-shadow: var(--shadow-md);
-  padding-top: 24px;
+  padding-top: 20px;
   flex-shrink: 0;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, margin 0.3s ease;
   overflow: hidden;
@@ -83,7 +84,7 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 0 16px 32px 16px; /* Separado más del botón abajo */
+  padding: 0 16px 24px 16px;
 }
 .brand-header-info {
   display: flex;
@@ -91,9 +92,10 @@ body {
   gap: 12px;
 }
 .brand-icon {
-  width: 44px;
-  height: 44px;
-  background: white;
+  width: 42px;
+  height: 42px;
+  background: #f8fafc;
+  border: 1px solid var(--border-subtle);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -114,8 +116,8 @@ body {
   flex-direction: column;
 }
 .brand-subtitle { font-size: 10px; color: var(--accent-green); font-weight: 700; }
-.brand-title { font-size: 15px; font-weight: 800; color: white; margin: -2px 0; }
-.brand-slogan { font-size: 10px; color: #cbd5e1; display: flex; align-items: center; gap: 4px; margin-top: 2px;}
+.brand-title { font-size: 15px; font-weight: 800; color: var(--text-primary); margin: -2px 0; }
+.brand-slogan { font-size: 10px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; margin-top: 2px;}
 .dot { width: 6px; height: 6px; background: var(--accent-green); border-radius: 50%; display: inline-block; }
 
 .new-chat-btn {
@@ -146,7 +148,7 @@ body {
 }
 
 
-.sidebar-footer { padding: 16px; border-top: 1px solid rgba(255,255,255,0.1); }
+.sidebar-footer { padding: 14px 16px; border-top: 1px solid var(--border-subtle); background: var(--bg-sidebar); position: relative; }
 .theme-toggle {
   width: 100%; padding: 10px; border-radius: 8px;
   background: rgba(255,255,255,0.1); color: white;
@@ -221,8 +223,16 @@ body {
 .user-avatar-small { background: #cbd5e1; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink:0; font-size:16px;}
 
 .chat-area {
-  flex: 1; padding: 20px; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column;
-  padding-top: 0px; position: relative;
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 0px;
+  position: relative;
+  width: 100%;
 }
 
 /* WELCOME SCREEN */
@@ -232,7 +242,7 @@ body {
   align-items: center;
   justify-content: center;
   flex: 1;
-  max-width: 840px;
+  max-width: 800px;
   width: 100%;
   margin: auto;
   padding: 12px 0;
@@ -335,7 +345,7 @@ body {
 .dark-theme .sug-text { color: white; }
 
 /* MESSAGES */
-.chat-messages { display: flex; flex-direction: column; gap: 24px; padding-bottom: 20px; width: 100%; box-sizing: border-box; }
+.chat-messages { display: flex; flex-direction: column; gap: 24px; padding-bottom: 20px; width: 100%; max-width: 800px; margin: 0 auto; box-sizing: border-box; }
 .message-wrapper { display: flex; flex-direction: column; gap: 12px; width: 100%; box-sizing: border-box; position: relative; z-index: 1; }
 .message-wrapper:hover,
 .message-wrapper:focus-within { z-index: 40; }
@@ -884,7 +894,15 @@ body {
 .detail-box li:last-child { margin-bottom: 0; }
 
 /* INPUT AREA */
-.input-area { padding: 20px 24px; background: var(--bg-panel); border-top: 1px solid var(--border-subtle); }
+.input-area {
+  padding: 16px 24px 20px;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
 .input-container { 
   display: flex; 
   flex-direction: column;
@@ -893,6 +911,9 @@ body {
   border-radius: 16px; 
   padding: 8px 12px; 
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
 }
 .input-container:focus-within {
   border-color: rgba(13, 179, 123, 0.45);
@@ -1039,7 +1060,15 @@ textarea { flex: 1; border: none; background: transparent; resize: none; font-fa
 .upload-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .upload-btn:not(:disabled):hover { background: rgba(59, 130, 246, 0.2); transform: scale(1.05); }
 .dark-theme .upload-btn { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border-color: rgba(59, 130, 246, 0.4); }
-.disclaimer { font-size: 11px; color: var(--text-secondary); margin-top: 10px; text-align: left; padding-left: 10px;}
+.disclaimer {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-align: left;
+  padding-left: 6px;
+  max-width: 800px;
+  width: 100%;
+  margin: 8px auto 0 auto;
+}
 
 /* HEADER PILLS & TOGGLES */
 .sidebar-collapse-btn {
@@ -1080,6 +1109,45 @@ textarea { flex: 1; border: none; background: transparent; resize: none; font-fa
   color: var(--accent-green);
 }
 
+/* LEFT ACTION BUTTONS (HISTORIAL & NORMATIVA) */
+.left-nav-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+.nav-icon-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.nav-icon-btn:hover {
+  background: var(--bg-main);
+  border-color: var(--border-subtle);
+  color: var(--accent-green);
+  transform: translateY(-1px);
+}
+
+.menu-icon-svg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--text-secondary);
+}
+.gemini-menu-item:hover .menu-icon-svg {
+  color: var(--accent-green);
+}
+
 @media (min-width: 1025px) {
   .sidebar:not(.is-collapsed) ~ .main-content .top-bar-left .sidebar-toggle-btn {
     display: none;
@@ -1091,77 +1159,29 @@ textarea { flex: 1; border: none; background: transparent; resize: none; font-fa
   }
 }
 
-.header-pill-btn {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  background: var(--bg-panel);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-primary);
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.header-pill-btn:hover {
-  border-color: var(--accent-green);
-  background: var(--bg-hover);
-  transform: translateY(-1px);
-}
-.header-pill-btn.weather-pill {
-  background: rgba(16, 185, 129, 0.08);
-  border-color: rgba(16, 185, 129, 0.25);
-  color: var(--accent-green);
-}
-.dark-theme .header-pill-btn.weather-pill {
-  background: rgba(16, 185, 129, 0.15);
-  border-color: rgba(16, 185, 129, 0.35);
-}
-.header-pill-btn.legal-pill {
-  background: rgba(59, 130, 246, 0.08);
-  border-color: rgba(59, 130, 246, 0.22);
-  color: #3b82f6;
-}
-.dark-theme .header-pill-btn.legal-pill {
-  background: rgba(59, 130, 246, 0.15);
-  border-color: rgba(59, 130, 246, 0.35);
-  color: #60a5fa;
-}
-.weather-pill-temp {
-  font-weight: 700;
-}
-.weather-pill-loc {
-  font-size: 11px;
-  color: var(--text-secondary);
-  max-width: 90px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* RIGHT PANEL (SLIDE-OVER DRAWER EN TODOS LOS TAMAÑOS) */
+/* NORMATIVA PANEL (SLIDE-OVER DRAWER DESDE LA IZQUIERDA) */
 .right-panel {
   position: fixed;
   top: 0;
-  right: 0;
+  left: 0;
+  right: auto;
   bottom: 0;
   width: 360px;
   max-width: 90vw;
   height: 100vh;
   height: 100dvh;
-  border-radius: 20px 0 0 20px;
-  z-index: 2100;
-  transform: translateX(105%);
+  border-radius: 0 20px 20px 0;
+  z-index: 2200;
+  transform: translateX(-105%);
   transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
-  background: var(--bg-main);
-  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.35);
+  background: var(--bg-panel);
+  box-shadow: 8px 0 32px rgba(0, 0, 0, 0.2);
   padding: 20px 18px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  border-right: 1px solid var(--border-subtle);
 }
 .right-panel.is-open {
   transform: translateX(0);
@@ -1459,11 +1479,12 @@ textarea { flex: 1; border: none; background: transparent; resize: none; font-fa
 
 /* RECENT CHATS (HISTORIAL ESTILO GEMINI) */
 .recent-chats-header {
-  font-size: 13px;
-  font-weight: 600;
-  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   padding: 0 16px 8px 16px;
-  letter-spacing: 0.2px;
   user-select: none;
 }
 
@@ -1476,7 +1497,7 @@ textarea { flex: 1; border: none; background: transparent; resize: none; font-fa
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
 /* Modern rounded Gemini slider scrollbar */
 .conversations-list::-webkit-scrollbar {
@@ -1486,37 +1507,48 @@ textarea { flex: 1; border: none; background: transparent; resize: none; font-fa
   background: transparent;
 }
 .conversations-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(0, 0, 0, 0.15);
   border-radius: 9999px;
   transition: background 0.2s ease;
 }
 .conversations-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.45);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .conv-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 14px;
-  border-radius: 9999px;
+  padding: 9px 14px;
+  border-radius: 12px;
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-sidebar, #cbd5e1);
+  color: var(--text-sidebar, #334155);
   user-select: none;
   position: relative;
   margin: 1px 0;
 }
 .conv-item:hover {
+  background-color: var(--bg-sidebar-hover, #f1f5f9);
+  color: var(--text-primary, #0f172a);
+}
+.conv-item.active {
+  background-color: #ecfdf5;
+  font-weight: 600;
+  color: #059669;
+}
+.dark-theme .conv-item {
+  color: #cbd5e1;
+}
+.dark-theme .conv-item:hover {
   background-color: rgba(255, 255, 255, 0.08);
   color: #ffffff;
 }
-.conv-item.active {
-  background-color: rgba(255, 255, 255, 0.15);
-  font-weight: 600;
-  color: #ffffff;
+.dark-theme .conv-item.active {
+  background-color: rgba(16, 185, 129, 0.18);
+  color: #34d399;
 }
 .conv-title {
   flex: 1;
@@ -1751,25 +1783,25 @@ textarea { flex: 1; border: none; background: transparent; resize: none; font-fa
   align-items: center;
 }
 .settings-gear-circle-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: transparent;
   border: 1px solid var(--border-subtle);
-  color: var(--text-primary);
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 18px;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
 }
 .settings-gear-circle-btn:hover,
 .settings-gear-circle-btn.active {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--bg-sidebar-hover);
+  color: var(--accent-green);
+  border-color: var(--accent-green);
   transform: rotate(45deg);
-  border-color: var(--accent-green, #10b981);
 }
 .dark-theme .settings-gear-circle-btn:hover,
 .dark-theme .settings-gear-circle-btn.active {

@@ -323,10 +323,9 @@
           </div>
         </div>
         <button class="sidebar-collapse-btn desktop-only" @click="toggleSidebar" title="Ocultar menú lateral" aria-label="Ocultar menú lateral">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="18" x="3" y="3" rx="3" />
+            <path d="M9 3v18" />
           </svg>
         </button>
         <button class="mobile-drawer-close-btn" @click="isMobileSidebarOpen = false" title="Cerrar menú">✕</button>
@@ -381,14 +380,31 @@
             <div v-if="showSettingsMenu" class="gemini-popover-menu" @click.stop>
               <!-- Item 1: Actividad -->
               <div class="gemini-menu-item" @click="openActivityModal">
-                <span class="menu-icon">🕒</span>
+                <span class="menu-icon-svg">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                </span>
                 <span class="menu-label">Actividad</span>
               </div>
 
               <!-- Item 2: Tema (con submenú interactivo) -->
               <div class="gemini-menu-item has-submenu" @mouseenter="showThemeSubmenu = true" @mouseleave="showThemeSubmenu = false">
                 <div class="menu-item-row">
-                  <span class="menu-icon">☼</span>
+                  <span class="menu-icon-svg">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="5"></circle>
+                      <line x1="12" y1="1" x2="12" y2="3"></line>
+                      <line x1="12" y1="21" x2="12" y2="23"></line>
+                      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                      <line x1="1" y1="12" x2="3" y2="12"></line>
+                      <line x1="21" y1="12" x2="23" y2="12"></line>
+                      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                  </span>
                   <span class="menu-label">Tema</span>
                   <span class="menu-arrow">▶</span>
                 </div>
@@ -409,18 +425,33 @@
 
               <!-- Item 3: Información del Modelo -->
               <div class="gemini-menu-item" @click="openModelModal">
-                <span class="menu-icon">💡</span>
+                <span class="menu-icon-svg">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                    <rect x="9" y="9" width="6" height="6"></rect>
+                    <line x1="9" y1="1" x2="9" y2="4"></line>
+                    <line x1="15" y1="1" x2="15" y2="4"></line>
+                    <line x1="9" y1="20" x2="9" y2="23"></line>
+                    <line x1="15" y1="20" x2="15" y2="23"></line>
+                    <line x1="20" y1="9" x2="23" y2="9"></line>
+                    <line x1="20" y1="14" x2="23" y2="14"></line>
+                    <line x1="1" y1="9" x2="4" y2="9"></line>
+                    <line x1="1" y1="14" x2="4" y2="14"></line>
+                  </svg>
+                </span>
                 <span class="menu-label">Información del Modelo</span>
               </div>
 
               <div class="gemini-menu-divider"></div>
 
-              <!-- Item 5: Ubicación detectada dinámicamente -->
-              <div class="gemini-menu-item location-item" @click="fetchWeather" title="Ubicación">
+              <!-- Item 5: Ubicación y Clima Único (sin redundancia) -->
+              <div class="gemini-menu-item location-item" @click="fetchWeather" title="Clic para actualizar clima y ubicación">
                 <span class="location-dot">●</span>
                 <div class="location-text-col">
-                  <span class="location-name">{{ weatherLocationName }}</span>
-                  <span class="location-sub">Detectado vía IP / GPS</span>
+                  <span class="location-name">
+                    {{ weatherData ? Math.round(weatherData.temperature) + '°C · ' : '' }}{{ weatherLocationName }}
+                  </span>
+                  <span class="location-sub">{{ weatherCondition.label || 'Detectado vía IP / GPS' }}</span>
                 </div>
               </div>
             </div>
@@ -429,7 +460,10 @@
           <div class="sidebar-footer-row">
             <div class="settings-gear-container" :class="{ 'menu-open': showSettingsMenu }">
               <button class="settings-gear-circle-btn" :class="{ active: showSettingsMenu }" @click.stop="showSettingsMenu = !showSettingsMenu" aria-label="Ajustes">
-                ⚙️
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
               </button>
               <div class="settings-tooltip-pill">
                 Ajustes
@@ -457,13 +491,20 @@
     <main class="main-content">
       <div class="top-bar">
         <div class="top-bar-left">
-          <button class="sidebar-toggle-btn" @click="toggleSidebar" title="Mostrar/ocultar menú">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="3" y1="12" x2="21" y2="12"></line>
-              <line x1="3" y1="6" x2="21" y2="6"></line>
-              <line x1="3" y1="18" x2="21" y2="18"></line>
-            </svg>
-          </button>
+          <div class="left-nav-stack">
+            <button class="nav-icon-btn sidebar-toggle-btn" @click="toggleSidebar" title="Historial de conversaciones" aria-label="Historial">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="3" />
+                <path d="M9 3v18" />
+              </svg>
+            </button>
+            <button class="nav-icon-btn normativa-toggle-btn" @click="toggleRightPanel('legal')" title="Normativa Oficial Vigente" aria-label="Normativa">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+              </svg>
+            </button>
+          </div>
           <div class="mobile-brand-info" @click="goToHome" title="Ir al Inicio">
             <img :src="carrosLogo" alt="Logo" class="mobile-brand-logo" />
             <span class="mobile-brand-title">TransiAI</span>
@@ -471,22 +512,6 @@
         </div>
 
         <div class="top-bar-right">
-          <!-- Píldora de Clima Compacta (Única ubicación del clima: informativa y actualizable al clic) -->
-          <button class="header-pill-btn weather-pill" @click="fetchWeather" title="Ubicación y clima actual (clic para actualizar)">
-            <span class="weather-pill-icon">{{ weatherCondition.emoji || '⛅' }}</span>
-            <span v-if="weatherData" class="weather-pill-temp">{{ Math.round(weatherData.temperature) }}°C</span>
-            <span class="weather-pill-loc">{{ weatherLocationName }}</span>
-          </button>
-
-          <!-- Botón de Normativa Oficial con 6 Enlaces (abre panel derecho) -->
-          <button class="header-pill-btn legal-pill" @click="toggleRightPanel('legal')" title="Consultar Normativa Oficial Vigente">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-            </svg>
-            <span class="legal-pill-label">Normativa Oficial</span>
-          </button>
-
           <!-- Si NO ha iniciado sesión: Botón Iniciar sesión con estilo TransiAI -->
           <div v-if="!currentUser" class="header-auth-container">
             <button class="btn-login-header" @click="openLoginModal">
@@ -535,10 +560,9 @@
           <div class="suggestions-container">
             <button class="sug-btn sug-blue" @click="onSuggestionClick(0)">
               <span class="sug-icon">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="12" y1="8" x2="12" y2="12"></line>
-                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="9"></circle>
+                  <path d="M12 3v18M3 12h18"></path>
                 </svg>
               </span>
               <span class="sug-text">{{ suggestedQuestions[0] }}</span>
@@ -546,8 +570,12 @@
             </button>
             <button class="sug-btn sug-green" @click="onSuggestionClick(1)">
               <span class="sug-icon">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="16" rx="3"></rect>
+                  <circle cx="9" cy="10" r="2"></circle>
+                  <line x1="15" y1="8" x2="17" y2="8"></line>
+                  <line x1="15" y1="12" x2="17" y2="12"></line>
+                  <line x1="7" y1="16" x2="17" y2="16"></line>
                 </svg>
               </span>
               <span class="sug-text">{{ suggestedQuestions[1] }}</span>
@@ -555,7 +583,7 @@
             </button>
             <button class="sug-btn sug-purple" @click="onSuggestionClick(2)">
               <span class="sug-icon">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
                 </svg>
               </span>
@@ -620,7 +648,7 @@
                 </div>
 
                 <div v-if="msg.role === 'user'" class="msg-action-btn-wrapper">
-                  <button class="msg-action-btn" @click="editUserMessage(msg.content)" title="Editar pregunta" aria-label="Editar pregunta">
+                  <button class="msg-action-btn" @click.stop="editUserMessage(msg.content)" title="Editar pregunta" aria-label="Editar pregunta">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
                       <path d="m15 5 4 4"></path>
@@ -776,7 +804,9 @@
                   aria-label="Adjuntar documento"
                   type="button"
               >
-                <img v-if="!isUploading" :src="clipIcon" alt="Adjuntar" style="width: 20px; height: 20px; object-fit: contain; display: block;" />
+                <svg v-if="!isUploading" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                </svg>
                 <div v-else class="file-chip-spinner" style="border-top-color: #3b82f6;"></div>
               </button>
               <div class="custom-tooltip-pill tooltip-top align-left">
@@ -1882,7 +1912,12 @@ export default {
       nextTick(() => {
         if (inputTextarea.value) {
           inputTextarea.value.focus();
+          try {
+            const len = inputMessage.value.length;
+            inputTextarea.value.setSelectionRange(len, len);
+          } catch (e) {}
           adjustTextareaHeight();
+          inputTextarea.value.scrollIntoView({ behavior: 'smooth', block: 'end' });
         }
       });
     }
