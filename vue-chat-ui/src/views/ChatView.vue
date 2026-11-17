@@ -533,8 +533,8 @@
             <div class="has-custom-tooltip">
               <button class="nav-icon-btn normativa-toggle-btn" @click="toggleRightPanel('legal')" aria-label="Normativa oficial">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
                 </svg>
               </button>
               <div class="custom-tooltip-pill tooltip-right">
@@ -589,9 +589,12 @@
               <h2>¡Bienvenido a <span>TransiAI</span>, tu guía legal de tránsito!</h2>
               <p>Realiza consultas normativas, tipifica infracciones y analiza informes periciales con base en la legislación ecuatoriana vigente.</p>
             </div>
+            <!-- Foto del robot comentada temporalmente para previsualizar centrada sin la foto -->
+            <!--
             <div class="welcome-robot">
               <img :src="robotLogo" alt="Robot TransiAI" class="robot-avatar-img" />
             </div>
+            -->
           </div>
           
           <div class="suggestions-container">
@@ -904,9 +907,9 @@
     <aside class="right-panel" :class="{ 'is-open': isRightPanelOpen }">
       <div class="right-panel-header">
         <div class="right-panel-title">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
           </svg>
           <h3>Normativa Oficial Vigente</h3>
         </div>
