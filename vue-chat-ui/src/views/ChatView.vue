@@ -382,9 +382,9 @@
         <div class="settings-anchor">
           <!-- Popover Dropdown Menu (Gemini Style) -->
           <transition name="pop-up">
-            <div v-if="showSettingsMenu" class="gemini-popover-menu" @click.stop>
+            <div v-if="showSettingsMenu" class="gemini-popover-menu" @click.stop @mouseleave="showThemeSubmenu = false">
               <!-- Item 1: Actividad -->
-              <div class="gemini-menu-item" @click="openActivityModal">
+              <div class="gemini-menu-item" @click="openActivityModal" @mouseenter="showThemeSubmenu = false">
                 <span class="menu-icon-svg">
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
@@ -395,7 +395,7 @@
               </div>
 
               <!-- Item 2: Tema (con submenú interactivo y clic directo para desplegar/seleccionar) -->
-              <div class="gemini-menu-item has-submenu" @click="showThemeSubmenu = !showThemeSubmenu" @mouseenter="showThemeSubmenu = true">
+              <div class="gemini-menu-item has-submenu" @click.stop="showThemeSubmenu = !showThemeSubmenu" @mouseenter="showThemeSubmenu = true" @mouseleave="showThemeSubmenu = false">
                 <div class="menu-item-row">
                   <span class="menu-icon-svg">
                     <svg v-if="!isDarkMode" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -420,7 +420,7 @@
                 <!-- Submenú de Tema -->
                 <transition name="fade">
                   <div v-if="showThemeSubmenu" class="gemini-submenu" @click.stop>
-                    <div class="gemini-submenu-item" :class="{ 'is-selected': !isDarkMode }" @click="isDarkMode = false">
+                    <div class="gemini-submenu-item" :class="{ 'is-selected': !isDarkMode }" @click="isDarkMode = false; showThemeSubmenu = false">
                       <span style="display:flex; align-items:center; gap:6px;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <circle cx="12" cy="12" r="5"></circle>
@@ -437,7 +437,7 @@
                       </span>
                       <span v-if="!isDarkMode" class="check-mark">✓</span>
                     </div>
-                    <div class="gemini-submenu-item" :class="{ 'is-selected': isDarkMode }" @click="isDarkMode = true">
+                    <div class="gemini-submenu-item" :class="{ 'is-selected': isDarkMode }" @click="isDarkMode = true; showThemeSubmenu = false">
                       <span style="display:flex; align-items:center; gap:6px;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
@@ -451,7 +451,7 @@
               </div>
 
               <!-- Item 3: Información del Modelo -->
-              <div class="gemini-menu-item" @click="openModelModal">
+              <div class="gemini-menu-item" @click="openModelModal" @mouseenter="showThemeSubmenu = false">
                 <span class="menu-icon-svg">
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="4" y="4" width="16" height="16" rx="2"></rect>
@@ -472,7 +472,7 @@
               <div class="gemini-menu-divider"></div>
 
               <!-- Item 5: Ubicación y Clima Único (sin redundancia) -->
-              <div class="gemini-menu-item location-item" @click="fetchWeather" title="Clic para actualizar clima y ubicación">
+              <div class="gemini-menu-item location-item" @click="fetchWeather" @mouseenter="showThemeSubmenu = false" title="Clic para actualizar clima y ubicación">
                 <span class="location-dot">●</span>
                 <div class="location-text-col">
                   <span class="location-name">
